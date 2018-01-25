@@ -48,6 +48,7 @@ func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string
 
 	adminCluster := adminConfig.Contexts[adminConfig.CurrentContext].Cluster
 	// Copy the cluster from admin.conf to the bootstrap kubeconfig, contains the CA cert and the server URL
+	// TODO: FIXME fix kubeconfig server address
 	bootstrapConfig := &clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
 			"": adminConfig.Clusters[adminCluster],
@@ -66,6 +67,7 @@ func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string
 		},
 		Data: map[string]string{
 			bootstrapapi.KubeConfigKey: string(bootstrapBytes),
+			// TODO: FIXME add ca.crt ca.key apiserver.key
 		},
 	})
 }

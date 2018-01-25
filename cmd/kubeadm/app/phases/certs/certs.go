@@ -40,6 +40,7 @@ func CreatePKIAssets(cfg *kubeadmapi.MasterConfiguration) error {
 		CreateCACertAndKeyfiles,
 		CreateAPIServerCertAndKeyFiles,
 		CreateAPIServerKubeletClientCertAndKeyFiles,
+		CreateKubeletServerCertAndKeyFiles,
 		CreateServiceAccountKeyAndPublicKeyFiles,
 		CreateFrontProxyCACertAndKeyFiles,
 		CreateFrontProxyClientCertAndKeyFiles,
@@ -61,6 +62,7 @@ func CreatePKIAssets(cfg *kubeadmapi.MasterConfiguration) error {
 // If the CA certificate and key files already exists in the target folder, they are used only if evaluated equal; otherwise an error is returned.
 func CreateCACertAndKeyfiles(cfg *kubeadmapi.MasterConfiguration) error {
 
+	// TODO: FIXME discovery certificate from api server
 	caCert, caKey, err := NewCACertAndKey()
 	if err != nil {
 		return err
@@ -83,7 +85,7 @@ func CreateAPIServerCertAndKeyFiles(cfg *kubeadmapi.MasterConfiguration) error {
 	if err != nil {
 		return err
 	}
-
+    // TODO: FIXME discovery certificate from api server
 	apiCert, apiKey, err := NewAPIServerCertAndKey(cfg, caCert, caKey)
 	if err != nil {
 		return err
@@ -119,6 +121,32 @@ func CreateAPIServerKubeletClientCertAndKeyFiles(cfg *kubeadmapi.MasterConfigura
 		caCert,
 		apiClientCert,
 		apiClientKey,
+	)
+}
+
+// generate kubelet server certificate and private key for Kubelet Server
+// --cert-dir=/etc/kubernetes/pki
+// --tls-cert-file=/etc/kubernetes/pki/kubelet.crt
+// --tls-private-key-file=/etc/kubernetes/pki/kubelet.key
+// It assumes the cluster CA certificate and key files should exists into the CertificatesDir
+func CreateKubeletServerCertAndKeyFiles(cfg *kubeadmapi.MasterConfiguration) error {
+
+	caCert, caKey, err := loadCertificateAuthorithy(cfg.CertificatesDir, kubeadmconstants.CACertAndKeyBaseName)
+	if err != nil {
+		return err
+	}
+
+	kubeletCert, kubeletKey, err := NewKubeletServerCertAndKey(caCert, caKey)
+	if err != nil {
+		return err
+	}
+
+	return writeCertificateFilesIfNotExist(
+		cfg.CertificatesDir,
+			"kubelet",
+		caCert,
+		kubeletCert,
+		kubeletKey,
 	)
 }
 
@@ -228,6 +256,24 @@ func NewAPIServerKubeletClientCertAndKey(caCert *x509.Certificate, caKey *rsa.Pr
 	}
 
 	return apiClientCert, apiClientKey, nil
+}
+
+// NewKubeletServerCertAndKey generate CA certificate for the apiservers to connect to the kubelets securely, signed by the given CA.
+func NewKubeletServerCertAndKey(caCert *x509.Certificate, caKey *rsa.PrivateKey) (*x509.Certificate, *rsa.PrivateKey, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil,nil,fmt.Errorf("couldn't get the hostname: %v \n ", err)
+	}
+	config := certutil.Config{
+		CommonName:   fmt.Sprintf("%s:%s",kubeadmconstants.NodesClusterRoleBinding,hostname),
+		Organization: []string{kubeadmconstants.NodesGroup},
+		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	cert, key, err := pkiutil.NewCertAndKey(caCert, caKey, config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failure while creating kubelet server key and certificate: %v \n", err)
+	}
+	return cert, key, nil
 }
 
 // NewServiceAccountSigningKey generate public/private key pairs for signing service account tokens.

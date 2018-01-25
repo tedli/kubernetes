@@ -23,7 +23,7 @@ import (
 
 const (
 	kubeDNSv180AndAboveVersion = "1.14.5"
-	kubeDNSv190AndAboveVersion = "1.14.7"
+	kubeDNSv190AndAboveVersion = "1.14.8"
 
 	kubeDNSProbeSRV = "SRV"
 	kubeDNSProbeA   = "A"

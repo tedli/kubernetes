@@ -39,8 +39,7 @@ import (
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
-	dnsaddonphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/dns"
-	proxyaddonphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/proxy"
+	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons"
 	clusterinfophase "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/clusterinfo"
 	nodebootstraptokenphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/node"
 	certsphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
@@ -191,7 +190,7 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 		"The duration before the bootstrap token is automatically deleted. If set to '0', the token will never expire.",
 	)
 	flagSet.StringVar(featureGatesString, "feature-gates", *featureGatesString, "A set of key=value pairs that describe feature gates for various features. "+
-		"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+		"Options are:\n"+ strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
 }
 
 // AddInitOtherFlags adds init flags that are not bound to a configuration file to the given flagset
@@ -298,18 +297,14 @@ func (i *Init) Run(out io.Writer) error {
 
 	adminKubeConfigPath := filepath.Join(kubeConfigDir, kubeadmconstants.AdminKubeConfigFileName)
 
+	// PHASE 1: Generate certificates and generate kubeconfig files
 	if res, _ := certsphase.UsingExternalCA(i.cfg); !res {
-
-		// PHASE 1: Generate certificates
 		if err := certsphase.CreatePKIAssets(i.cfg); err != nil {
 			return err
 		}
-
-		// PHASE 2: Generate kubeconfig files for the admin and the kubelet
 		if err := kubeconfigphase.CreateInitKubeConfigFiles(kubeConfigDir, i.cfg); err != nil {
 			return err
 		}
-
 	} else {
 		fmt.Println("[externalca] The file 'ca.key' was not found, yet all other certificates are present. Using external CA mode - certificates or kubeconfig will not be generated.")
 	}
@@ -317,6 +312,9 @@ func (i *Init) Run(out io.Writer) error {
 	// Temporarily set cfg.CertificatesDir to the "real value" when writing controlplane manifests
 	// This is needed for writing the right kind of manifests
 	i.cfg.CertificatesDir = realCertsDir
+
+	// PHASE 2: Install Kubelet
+	// TODO: FIXME
 
 	// PHASE 3: Bootstrap the control plane
 	if err := controlplanephase.CreateInitStaticPodManifestFiles(manifestDir, i.cfg); err != nil {
@@ -419,12 +417,9 @@ func (i *Init) Run(out io.Writer) error {
 		return fmt.Errorf("error creating clusterinfo RBAC rules: %v", err)
 	}
 
-	if err := dnsaddonphase.EnsureDNSAddon(i.cfg, client); err != nil {
+	// PHASE 6:  Deploy AddOns
+	if err := addons.DeployAddons(i.cfg, client); err != nil {
 		return fmt.Errorf("error ensuring dns addon: %v", err)
-	}
-
-	if err := proxyaddonphase.EnsureProxyAddon(i.cfg, client); err != nil {
-		return fmt.Errorf("error ensuring proxy addon: %v", err)
 	}
 
 	// PHASE 7: Make the control plane self-hosted if feature gate is enabled
