@@ -62,6 +62,16 @@ type MasterConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+
+	// The master will be a member of High Availability master group, if it is empty, it will be a fresh master
+	HighAvailabilityPeer     string               `json:"highAvailability"`
+
+	// TenxCloud Enterprise Server Address
+	ApiServerUrl             string               `json:"apiServerUrl"`
+
+	// Credential to access TenxCloud Enterprise Server
+	ApiServerCredential      string               `json:"apiServerCredential"`
+
 }
 
 // API struct contains elements of API server address.

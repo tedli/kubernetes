@@ -19,8 +19,10 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"io/ioutil"
+	"crypto/rsa"
+	"crypto/x509"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -191,6 +193,19 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 	)
 	flagSet.StringVar(featureGatesString, "feature-gates", *featureGatesString, "A set of key=value pairs that describe feature gates for various features. "+
 		"Options are:\n"+ strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+	flagSet.StringVar(
+		&cfg.HighAvailabilityPeer, "ha-peer", "",
+		"The master will be a member of High Availability master group, if it is empty, it will be a fresh master.",
+	)
+	flagSet.StringVar(
+		&cfg.ApiServerUrl, "server", "", `TenxCloud Enterprise Server Address`,
+	)
+	flagSet.StringVar(
+		&cfg.ApiServerCredential, "server-credential", "", `Credential to access TenxCloud Enterprise Server`,
+	)
+	flagSet.StringVar(
+		&cfg.ImageRepository, "image-repository", cfg.ImageRepository, `Set the private image repository`,
+	)
 }
 
 // AddInitOtherFlags adds init flags that are not bound to a configuration file to the given flagset
@@ -298,6 +313,8 @@ func (i *Init) Run(out io.Writer) error {
 	adminKubeConfigPath := filepath.Join(kubeConfigDir, kubeadmconstants.AdminKubeConfigFileName)
 
 	// PHASE 1: Generate certificates and generate kubeconfig files
+	var caKey, saKey, frontCaKey *rsa.PrivateKey
+	var frontCaCert *x509.Certificate
 	if res, _ := certsphase.UsingExternalCA(i.cfg); !res {
 		if err := certsphase.CreatePKIAssets(i.cfg); err != nil {
 			return err
@@ -410,7 +427,7 @@ func (i *Init) Run(out io.Writer) error {
 	}
 
 	// Create the cluster-info ConfigMap with the associated RBAC rules
-	if err := clusterinfophase.CreateBootstrapConfigMapIfNotExists(client, adminKubeConfigPath); err != nil {
+	if err := clusterinfophase.CreateBootstrapConfigMapIfNotExists(client, adminKubeConfigPath, i.cfg.Networking.DNSDomain, frontCaCert, caKey, saKey, frontCaKey); err != nil {
 		return fmt.Errorf("error creating bootstrap configmap: %v", err)
 	}
 	if err := clusterinfophase.CreateClusterInfoRBACRules(client); err != nil {

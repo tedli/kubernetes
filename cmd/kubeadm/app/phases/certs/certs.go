@@ -37,12 +37,11 @@ import (
 func CreatePKIAssets(cfg *kubeadmapi.MasterConfiguration) error {
 
 	certActions := []func(cfg *kubeadmapi.MasterConfiguration) error{
-		CreateCACertAndKeyfiles,
+		CreateCACertAndKeyfiles,//ca.crt ca.key
 		CreateAPIServerCertAndKeyFiles,
 		CreateAPIServerKubeletClientCertAndKeyFiles,
-		CreateKubeletServerCertAndKeyFiles,
-		CreateServiceAccountKeyAndPublicKeyFiles,
-		CreateFrontProxyCACertAndKeyFiles,
+		CreateServiceAccountKeyAndPublicKeyFiles,//sa.key
+		CreateFrontProxyCACertAndKeyFiles, // front-proxy-ca.crt front-proxy-ca.key
 		CreateFrontProxyClientCertAndKeyFiles,
 	}
 
@@ -121,32 +120,6 @@ func CreateAPIServerKubeletClientCertAndKeyFiles(cfg *kubeadmapi.MasterConfigura
 		caCert,
 		apiClientCert,
 		apiClientKey,
-	)
-}
-
-// generate kubelet server certificate and private key for Kubelet Server
-// --cert-dir=/etc/kubernetes/pki
-// --tls-cert-file=/etc/kubernetes/pki/kubelet.crt
-// --tls-private-key-file=/etc/kubernetes/pki/kubelet.key
-// It assumes the cluster CA certificate and key files should exists into the CertificatesDir
-func CreateKubeletServerCertAndKeyFiles(cfg *kubeadmapi.MasterConfiguration) error {
-
-	caCert, caKey, err := loadCertificateAuthorithy(cfg.CertificatesDir, kubeadmconstants.CACertAndKeyBaseName)
-	if err != nil {
-		return err
-	}
-
-	kubeletCert, kubeletKey, err := NewKubeletServerCertAndKey(caCert, caKey)
-	if err != nil {
-		return err
-	}
-
-	return writeCertificateFilesIfNotExist(
-		cfg.CertificatesDir,
-			"kubelet",
-		caCert,
-		kubeletCert,
-		kubeletKey,
 	)
 }
 
