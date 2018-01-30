@@ -18,8 +18,13 @@ package etcd
 
 import (
 	"fmt"
+	"path"
+	//"strings"
 
 	"k8s.io/api/core/v1"
+	//"golang.org/x/net/context"
+	//"k8s.io/apimachinery/pkg/util/wait"
+	//"github.com/coreos/etcd/clientv3"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
@@ -64,10 +69,38 @@ func GetEtcdPodSpec(cfg *kubeadmapi.MasterConfiguration) v1.Pod {
 
 // getEtcdCommand builds the right etcd command from the given config object
 func getEtcdCommand(cfg *kubeadmapi.MasterConfiguration) []string {
+	AdvertiseAddr := "127.0.0.1"
+	if len(cfg.API.AdvertiseAddress) > 0 {
+		AdvertiseAddr = cfg.API.AdvertiseAddress
+	}
+
+	NewMemberName := "etcd-" + AdvertiseAddr
+	//NewMemberPeerUrl := "https://" + AdvertiseAddr + ":2380"
+	InitialClusterFlag := "etcd-" + AdvertiseAddr + "=https://" + AdvertiseAddr + ":2380"
+	InitialClusterStatus := "new"
+
+
+
 	defaultArguments := map[string]string{
-		"listen-client-urls":    "http://127.0.0.1:2379",
-		"advertise-client-urls": "http://127.0.0.1:2379",
+		"name":                  NewMemberName,
 		"data-dir":              cfg.Etcd.DataDir,
+
+		"trusted-ca-file":       path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
+		"key-file":              path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKeyName),
+		"cert-file":             path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerCertName),
+		"client-cert-auth":      "true",
+		"peer-trusted-ca-file":  path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
+		"peer-key-file":         path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKeyName),
+		"peer-cert-file":        path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerCertName),
+		"peer-client-cert-auth": "true",
+
+		"initial-advertise-peer-urls": "https://" + AdvertiseAddr + ":2380",
+		"listen-peer-urls":            "https://" + AdvertiseAddr + ":2380",
+		"listen-client-urls":          "https://" + AdvertiseAddr + ":2379,http://127.0.0.1:2379",
+		"advertise-client-urls":       "https://" + AdvertiseAddr + ":2379,http://127.0.0.1:2379",
+		"initial-cluster-token":       "k8s",
+		"initial-cluster":             InitialClusterFlag,
+		"initial-cluster-state":       InitialClusterStatus,
 	}
 
 	command := []string{"etcd"}

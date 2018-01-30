@@ -170,6 +170,27 @@ func AddJoinConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.NodeConfigurat
 		featureGatesString, "feature-gates", *featureGatesString,
 		"A set of key=value pairs that describe feature gates for various features. "+
 			"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+
+	flagSet.StringVar(
+		&cfg.Networking.ServiceSubnet, "service-cidr", cfg.Networking.ServiceSubnet,
+		"Use alternative range of IP address for service VIPs",
+	)
+	flagSet.StringVar(
+		&cfg.Networking.PodSubnet, "pod-network-cidr", cfg.Networking.PodSubnet,
+		"Specify range of IP addresses for the pod network; if set, the control plane will automatically allocate CIDRs for every node",
+	)
+	flagSet.StringVar(
+		&cfg.Networking.DNSDomain, "service-dns-domain", cfg.Networking.DNSDomain,
+		`Use alternative domain for services, e.g. "cluster.local"`,
+	)
+	flagSet.StringVar(
+		&cfg.KubernetesVersion, "kubernetes-version", cfg.KubernetesVersion,
+		`Choose a specific Kubernetes version for the kubelet`,
+	)
+	flagSet.StringVar(
+		&cfg.ImageRepository, "image-repository", cfg.ImageRepository,
+		`Set the private image repository prefix`,
+	)
 }
 
 // AddJoinOtherFlags adds join flags that are not bound to a configuration file to the given flagset

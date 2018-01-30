@@ -162,6 +162,8 @@ type NodeConfiguration struct {
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool
 
+	ImageRepository      string
+
 	Networking        Networking
 
 	KubernetesVersion string

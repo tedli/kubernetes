@@ -156,6 +156,13 @@ type NodeConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+
+	// ImageRepository what container registry to pull control plane images from
+	ImageRepository      string `json:"imageRepository"`
+
+	Networking           Networking           `json:"networking"`
+
+	KubernetesVersion    string               `json:"kubernetesVersion"`
 }
 
 // KubeletConfiguration contains elements describing initial remote configuration of kubelet
