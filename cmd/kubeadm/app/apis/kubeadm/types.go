@@ -158,6 +158,10 @@ type NodeConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool
+
+	Networking        Networking
+
+	KubernetesVersion string
 }
 
 // KubeletConfiguration contains elements describing initial remote configuration of kubelet

@@ -43,6 +43,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	utilsexec "k8s.io/utils/exec"
+	"k8s.io/kubernetes/pkg/kubelet"
 )
 
 var (
@@ -261,6 +262,11 @@ func (j *Join) Run(out io.Writer) error {
 		if err := kubeletphase.ConsumeBaseKubeletConfiguration(j.cfg.NodeName); err != nil {
 			return fmt.Errorf("error consuming base kubelet configuration: %v", err)
 		}
+	}
+
+	err = kubeletphase.TryInstallKubelet(j.cfg.Networking.ServiceSubnet, j.cfg.Networking.DNSDomain, j.cfg.KubernetesVersion)
+	if err != nil {
+		return err
 	}
 
 	fmt.Fprintf(out, joinDoneMsgf)
