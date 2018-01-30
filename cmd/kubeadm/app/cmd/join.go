@@ -43,7 +43,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	utilsexec "k8s.io/utils/exec"
-	"k8s.io/kubernetes/pkg/kubelet"
 )
 
 var (
@@ -285,7 +284,7 @@ func (j *Join) Run(out io.Writer) error {
 		}
 	}
 
-	err = kubeletphase.TryInstallKubelet(j.cfg.Networking.ServiceSubnet, j.cfg.Networking.DNSDomain, j.cfg.KubernetesVersion)
+	err = kubeletphase.TryInstallKubelet(j.cfg.Networking.ServiceSubnet, j.cfg.ImageRepository, j.cfg.Networking.DNSDomain, j.cfg.KubernetesVersion)
 	if err != nil {
 		return err
 	}

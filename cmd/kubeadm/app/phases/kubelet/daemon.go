@@ -6,35 +6,40 @@
 
 package kubelet
 
-
 import (
 	"bytes"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	//kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	//"k8s.io/kubernetes/cmd/kubeadm/app/images"
+	"github.com/golang/glog"
+
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/initsystem"
+	"k8s.io/kubernetes/pkg/volume/util"
 )
 
 var (
-	kubeletServicePath = "/etc/systemd/system"
-	ServiceName        = "kubelet"
+	kubeletServicePath     = "/etc/systemd/system"
+	ServiceName            = "kubelet"
+	ConfigName             = "10-kubeadm.conf"
+	kubeletServiceConfPath = kubeletServicePath + "/" + ServiceName + ".service.d"
 )
 
-func TryInstallKubelet(serviceSubnet, DNSDomain, KubernetesVersion string) error {
+//TODO: imageRepo
+func TryInstallKubelet(serviceSubnet, DNSDomain, imageRepository, KubernetesVersion string) error {
 	// PHASE 1: Write Kubelet Service to /etc/systemd/system/kubelet.service
-	err := writeKubeletService(serviceSubnet, DNSDomain, KubernetesVersion)
+	err := writeKubeletService(serviceSubnet, DNSDomain, imageRepository, KubernetesVersion)
 	if err != nil {
 		fmt.Println("[kubelet] Write kubelet service to /etc/systemd/system/kubelet.service failed.")
 		return err
 	}
 	// PHASE 2: If we notice that the kubelet service is inactive, try to start it
 	initSystem, err := initsystem.GetInitSystem()
-	//initSystem.DaemonReload()
+	initSystem.DaemonReload()
 	if err != nil {
 		fmt.Println("[kubelet] No supported init system detected, won't ensure kubelet is running.")
 		return err
@@ -46,7 +51,7 @@ func TryInstallKubelet(serviceSubnet, DNSDomain, KubernetesVersion string) error
 			return err
 		} else {
 			if !initSystem.ServiceIsEnabled(ServiceName) {
-				//initSystem.ServiceEnable(ServiceName)
+				initSystem.ServiceEnable(ServiceName)
 				fmt.Println("[kubelet] kubelet is enabled.")
 			}
 		}
@@ -55,31 +60,56 @@ func TryInstallKubelet(serviceSubnet, DNSDomain, KubernetesVersion string) error
 }
 
 // /etc/systemd/system/kubelet.service
-func writeKubeletService(serviceSubnet, DNSDomain, KubernetesVersion string) error {
+func writeKubeletService(serviceSubnet, DNSDomain, imageRepository, KubernetesVersion string) error {
 	dnsIP, err := getKubeDNSServiceIP(serviceSubnet)
 	if err != nil {
 		return fmt.Errorf("could not parse dns ip %q", dnsIP)
 	}
+	kubeletservice := `
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=http://kubernetes.io/docs/
+
+[Service]
+ExecStart=/usr/bin/kubelet
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+`
 	buf := bytes.Buffer{}
-	buf.WriteString("[Unit]\n")
-	buf.WriteString("Description=kubelet: The Kubernetes Node Agent\n")
-	buf.WriteString("Documentation=http://kubernetes.io/docs\n")
-	buf.WriteString("\n")
+	buf.WriteString(kubeletservice)
+	filename := filepath.Join(kubeletServicePath, ServiceName+".service")
+	if err := cmdutil.DumpReaderToFile(bytes.NewReader(buf.Bytes()), filename); err != nil {
+		return fmt.Errorf("failed to create kubelet.service file for (%q) [%v] \n", filename, err)
+	} else {
+		fmt.Printf("[kubelet] Write kubelet service to %q Successfully.\n", filename)
+	}
+
+	if exist, _ := util.PathExists(kubeletServiceConfPath); exist == false {
+		err := os.MkdirAll(kubeletServiceConfPath, 0755)
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+	}
+
+	buf = bytes.Buffer{}
 	buf.WriteString("[Service]\n")
 	buf.WriteString("Environment=\"KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --require-kubeconfig=true\"\n")
 	buf.WriteString("Environment=\"KUBELET_SYSTEM_PODS_ARGS=--pod-manifest-path=/etc/kubernetes/manifests --allow-privileged=true\"\n")
 	buf.WriteString("Environment=\"KUBELET_NETWORK_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin\"\n")
 	buf.WriteString("Environment=\"KUBELET_DNS_ARGS=--cluster-dns=" + dnsIP.String() + "   --cluster-domain=" + DNSDomain + "\"\n")
 	buf.WriteString("Environment=\"KUBELET_AUTHZ_ARGS=--client-ca-file=/etc/kubernetes/pki/ca.crt  --anonymous-auth=false --authorization-mode=Webhook --authentication-token-webhook  \"\n")
-
-	//Deprecated please use RotateKubeletServerCertificate
-	//buf.WriteString("Environment=\"KUBELET_CERT_ARGS=--tls-cert-file=/etc/kubernetes/pki/kubelet.crt --tls-private-key-file=/etc/kubernetes/pki/kubelet.key  --cert-dir=/etc/kubernetes/pki  \"\n")
+	buf.WriteString("Environment=\"KUBELET_CADVISOR_ARGS=--cadvisor-port=0 --fail-swap-on=false --housekeeping-interval=5s  --global-housekeeping-interval=5s\"")
 	buf.WriteString("Environment=\"KUBELET_CERT_ARGS=--feature-gates=RotateKubeletServerCertificate=true  \"\n")
 
-	//buf.WriteString("Environment=\"KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs  --pod-infra-container-image=" + images.GetAddOnImage(images.KubePause, images.PauseVersion) + "\"\n")
+	buf.WriteString("Environment=\"KUBELET_CGROUP_ARGS=--cgroup-driver=systemd  --pod-infra-container-image=" + fmt.Sprintf("%s/pause-%s:%s", imageRepository, runtime.GOARCH, KubernetesVersion) + "\"\n")
 	buf.WriteString("Environment=\"KUBELET_PERFORMANCE_ARGS=--kube-reserved=cpu=200m,memory=512Mi  \"\n")
 	buf.WriteString("ExecStartPre=/usr/bin/docker run --rm -v /opt/tmp/bin/:/opt/tmp/bin/   ")
-	//buf.WriteString(images.GetCoreImage("", nil, fmt.Sprintf("%s:%s", kubeadmapi.GlobalEnvParams.HyperkubeImage, KubernetesVersion)))
+	buf.WriteString(fmt.Sprintf("%s/hyperkube-%s:%s", imageRepository, runtime.GOARCH, KubernetesVersion))
 	buf.WriteString(" /bin/bash -c \"mkdir -p /opt/tmp/bin && cp /opt/cni/bin/* /opt/tmp/bin/ && cp /usr/bin/nsenter /opt/tmp/bin/\" \n")
 	buf.WriteString("ExecStartPre=/bin/bash -c \"mkdir -p /opt/cni/bin && cp -r /opt/tmp/bin/ /opt/cni/ && cp /opt/tmp/bin/nsenter /usr/bin/ && rm -r /opt/tmp\"\n")
 	buf.WriteString("ExecStartPre=/bin/bash -c \"docker inspect kubelet >/dev/null 2>&1 && docker rm -f kubelet || true \" \n")
@@ -88,8 +118,8 @@ func writeKubeletService(serviceSubnet, DNSDomain, KubernetesVersion string) err
 	buf.WriteString("-v /var/lib/kubelet/:/var/lib/kubelet:shared -v /etc/kubernetes:/etc/kubernetes:ro ")
 	buf.WriteString("-v /etc/cni:/etc/cni:rw -v /sys:/sys:ro -v /var/run:/var/run:rw -v /opt/cni/bin/:/opt/cni/bin/ ")
 	buf.WriteString("-v /srv/kubernetes:/srv/kubernetes:ro ")
-	//buf.WriteString(images.GetCoreImage("", nil, fmt.Sprintf("%s:%s", kubeadmapi.GlobalEnvParams.HyperkubeImage, KubernetesVersion)))
-	buf.WriteString(" nsenter --target=1 --mount --wd=./ -- ./hyperkube kubelet ")
+	buf.WriteString(fmt.Sprintf("%s/hyperkube-%s:%s", imageRepository, runtime.GOARCH, KubernetesVersion))
+	buf.WriteString(" nsenter --target=1 --mount --wd=./ -- hyperkube kubelet ")
 	buf.WriteString(" $KUBELET_KUBECONFIG_ARGS $KUBELET_SYSTEM_PODS_ARGS $KUBELET_NETWORK_ARGS $KUBELET_DNS_ARGS $KUBELET_AUTHZ_ARGS  $KUBELET_CERT_ARGS $KUBELET_CGROUP_ARGS $KUBELET_EXTRA_ARGS $KUBELET_PERFORMANCE_ARGS \" \n")
 	buf.WriteString("ExecStop=/usr/bin/docker stop kubelet \n")
 	buf.WriteString("ExecStopPost=/usr/bin/docker rm -f kubelet \n")
@@ -100,11 +130,11 @@ func writeKubeletService(serviceSubnet, DNSDomain, KubernetesVersion string) err
 	buf.WriteString("[Install]\n")
 	buf.WriteString("WantedBy=multi-user.target\n")
 	buf.WriteString("\n")
-	filename := filepath.Join(kubeletServicePath, "kubelet.service")
+	filename = filepath.Join(kubeletServicePath, kubeletServiceConfPath+"/"+ConfigName)
 	if err := cmdutil.DumpReaderToFile(bytes.NewReader(buf.Bytes()), filename); err != nil {
 		return fmt.Errorf("failed to create kubelet.service file for (%q) [%v] \n", filename, err)
 	} else {
-		fmt.Printf("[kubelet] Write kubelet service to %q Successfully.\n", filename)
+		fmt.Printf("[kubelet] Write kubelet service conf to %q Successfully.\n", filename)
 	}
 	return nil
 }

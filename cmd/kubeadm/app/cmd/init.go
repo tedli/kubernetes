@@ -17,12 +17,12 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"io"
-	"os"
-	"io/ioutil"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -192,7 +192,7 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 		"The duration before the bootstrap token is automatically deleted. If set to '0', the token will never expire.",
 	)
 	flagSet.StringVar(featureGatesString, "feature-gates", *featureGatesString, "A set of key=value pairs that describe feature gates for various features. "+
-		"Options are:\n"+ strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+		"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
 	flagSet.StringVar(
 		&cfg.HighAvailabilityPeer, "ha-peer", "",
 		"The master will be a member of High Availability master group, if it is empty, it will be a fresh master.",
@@ -335,7 +335,7 @@ func (i *Init) Run(out io.Writer) error {
 	i.cfg.CertificatesDir = realCertsDir
 
 	// PHASE 2: Install Kubelet
-	err = kubeletphase.TryInstallKubelet(i.cfg.Networking.ServiceSubnet, i.cfg.Networking.DNSDomain, i.cfg.KubernetesVersion)
+	err = kubeletphase.TryInstallKubelet(i.cfg.Networking.ServiceSubnet, j.cfg.ImageRepository, i.cfg.Networking.DNSDomain, i.cfg.KubernetesVersion)
 	if err != nil {
 		return err
 	}
