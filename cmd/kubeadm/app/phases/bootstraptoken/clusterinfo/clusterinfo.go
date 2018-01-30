@@ -40,7 +40,7 @@ const (
 )
 
 // CreateBootstrapConfigMapIfNotExists creates the kube-public ConfigMap if it doesn't exist already
-func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string, DNSDomain string, frontCaCert *x509.Certificate, caKey, saKey, frontCaKey *rsa.PrivateKey) error {
+func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string, DNSDomain string, caCert *x509.Certificate, caKey, saKey *rsa.PrivateKey) error {
 
 	fmt.Printf("[bootstraptoken] Creating the %q ConfigMap in the %q namespace\n", bootstrapapi.ConfigMapClusterInfo, metav1.NamespacePublic)
 
@@ -51,7 +51,6 @@ func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string
 
 	adminCluster := adminConfig.Contexts[adminConfig.CurrentContext].Cluster
 	// Copy the cluster from admin.conf to the bootstrap kubeconfig, contains the CA cert and the server URL
-	// TODO: FIXME fix kubeconfig server address
 	//bootstrapConfig := &clientcmdapi.Config{
 	//	Clusters: map[string]*clientcmdapi.Cluster{
 	//		"": adminConfig.Clusters[adminCluster],
@@ -78,10 +77,9 @@ func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string
 		},
 		Data: map[string]string{
 			bootstrapapi.KubeConfigKey: string(bootstrapBytes),
+			bootstrapapi.CaCert:        string(cert.EncodeCertPEM(caCert)),
 			bootstrapapi.CaKey:         string(cert.EncodePrivateKeyPEM(caKey)),
 			bootstrapapi.SaKey:         string(cert.EncodePrivateKeyPEM(saKey)),
-			bootstrapapi.FrontCaCert:   string(cert.EncodeCertPEM(frontCaCert)),
-			bootstrapapi.FrontCaKey:    string(cert.EncodePrivateKeyPEM(frontCaKey)),
 		},
 	})
 }

@@ -197,6 +197,9 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 		&cfg.HighAvailabilityPeer, "ha-peer", "",
 		"The master will be a member of High Availability master group, if it is empty, it will be a fresh master.",
 	)
+	flagSet.StringSliceVar(
+		&cfg.DiscoveryTokenCACertHashes, "discovery-token-ca-cert-hash", []string{},
+		"For token-based discovery, validate that the root CA public key matches this hash (format: \"<type>:<value>\").")
 	flagSet.StringVar(
 		&cfg.ApiServerUrl, "server", "", `TenxCloud Enterprise Server Address`,
 	)
@@ -313,10 +316,11 @@ func (i *Init) Run(out io.Writer) error {
 	adminKubeConfigPath := filepath.Join(kubeConfigDir, kubeadmconstants.AdminKubeConfigFileName)
 
 	// PHASE 1: Generate certificates and generate kubeconfig files
-	var caKey, saKey, frontCaKey *rsa.PrivateKey
-	var frontCaCert *x509.Certificate
+	var caKey, saKey *rsa.PrivateKey
+	var caCert *x509.Certificate
 	if res, _ := certsphase.UsingExternalCA(i.cfg); !res {
-		if err := certsphase.CreatePKIAssets(i.cfg); err != nil {
+		caCert, caKey, saKey, err = certsphase.CreatePKIAssets(i.cfg)
+		if err != nil {
 			return err
 		}
 		if err := kubeconfigphase.CreateInitKubeConfigFiles(kubeConfigDir, i.cfg); err != nil {
@@ -331,7 +335,10 @@ func (i *Init) Run(out io.Writer) error {
 	i.cfg.CertificatesDir = realCertsDir
 
 	// PHASE 2: Install Kubelet
-	// TODO: FIXME
+	err = kubeletphase.TryInstallKubelet(i.cfg.Networking.ServiceSubnet, i.cfg.Networking.DNSDomain, i.cfg.KubernetesVersion)
+	if err != nil {
+		return err
+	}
 
 	// PHASE 3: Bootstrap the control plane
 	if err := controlplanephase.CreateInitStaticPodManifestFiles(manifestDir, i.cfg); err != nil {
@@ -427,7 +434,7 @@ func (i *Init) Run(out io.Writer) error {
 	}
 
 	// Create the cluster-info ConfigMap with the associated RBAC rules
-	if err := clusterinfophase.CreateBootstrapConfigMapIfNotExists(client, adminKubeConfigPath, i.cfg.Networking.DNSDomain, frontCaCert, caKey, saKey, frontCaKey); err != nil {
+	if err := clusterinfophase.CreateBootstrapConfigMapIfNotExists(client, adminKubeConfigPath, i.cfg.Networking.DNSDomain, caCert, caKey, saKey); err != nil {
 		return fmt.Errorf("error creating bootstrap configmap: %v", err)
 	}
 	if err := clusterinfophase.CreateClusterInfoRBACRules(client); err != nil {

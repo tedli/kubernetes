@@ -64,13 +64,16 @@ type MasterConfiguration struct {
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 
 	// The master will be a member of High Availability master group, if it is empty, it will be a fresh master
-	HighAvailabilityPeer     string               `json:"highAvailability"`
+	HighAvailabilityPeer        string               `json:"highAvailability"`
+
+	//For token-based discovery, validate that the root CA public key matches this hash
+	DiscoveryTokenCACertHashes  []string             `json:"discoveryTokenCACertHashes,omitempty"`
 
 	// TenxCloud Enterprise Server Address
-	ApiServerUrl             string               `json:"apiServerUrl"`
+	ApiServerUrl                string               `json:"apiServerUrl"`
 
 	// Credential to access TenxCloud Enterprise Server
-	ApiServerCredential      string               `json:"apiServerCredential"`
+	ApiServerCredential         string               `json:"apiServerCredential"`
 
 }
 

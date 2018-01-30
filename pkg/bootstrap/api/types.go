@@ -82,10 +82,9 @@ const (
 	// JWSSignatureKeyPrefix defines what key prefix the JWS-signed tokens have
 	JWSSignatureKeyPrefix = "jws-kubeconfig-"
 
+	CaCert       =   "ca.crt"
 	CaKey        =   "ca.key"
 	SaKey        =   "sa.key"
-	FrontCaCert  =   "front-proxy-ca.crt"
-	FrontCaKey   =   "front-proxy-ca.key"
 
 
 	// BootstrapUserPrefix is the username prefix bootstrapping bearer tokens

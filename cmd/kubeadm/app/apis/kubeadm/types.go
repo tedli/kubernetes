@@ -71,6 +71,9 @@ type MasterConfiguration struct {
 	// The master will be a member of High Availability master group, if it is empty, it will be a fresh master
 	HighAvailabilityPeer    string
 
+	//For token-based discovery, validate that the root CA public key matches this hash
+	DiscoveryTokenCACertHashes  []string
+
 	// TenxCloud Enterprise Server Address
 	ApiServerUrl        string
 
