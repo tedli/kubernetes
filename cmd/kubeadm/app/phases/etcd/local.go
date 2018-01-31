@@ -19,12 +19,12 @@ package etcd
 import (
 	"fmt"
 	"path"
-	//"strings"
+	"strings"
 
 	"k8s.io/api/core/v1"
-	//"golang.org/x/net/context"
-	//"k8s.io/apimachinery/pkg/util/wait"
-	//"github.com/coreos/etcd/clientv3"
+	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"github.com/coreos/etcd/clientv3"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
@@ -75,10 +75,52 @@ func getEtcdCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 	}
 
 	NewMemberName := "etcd-" + AdvertiseAddr
-	//NewMemberPeerUrl := "https://" + AdvertiseAddr + ":2380"
+	NewMemberPeerUrl := "https://" + AdvertiseAddr + ":2380"
 	InitialClusterFlag := "etcd-" + AdvertiseAddr + "=https://" + AdvertiseAddr + ":2380"
 	InitialClusterStatus := "new"
 
+	if cfg.HighAvailabilityPeer != "" {
+		wait.PollImmediateInfinite(kubeadmconstants.DiscoveryRetryInterval, func() (bool, error) {
+			endpoints := strings.Split(cfg.HighAvailabilityPeer, ",")
+			socket := endpoints[0]
+			ip := socket[:strings.Index(socket, ":")]
+			existingMember := fmt.Sprintf("https://%s:2379", ip)
+			//fmt.Printf("[manifests] Adding etcd member [ %s ] into an existing cluster [ %s ] !\n",NewMemberPeerUrl,existingMember)
+			client, err := kubeadmutil.NewEtcdClient([]string{existingMember},
+				path.Join(cfg.CertificatesDir, "client.crt"),
+				path.Join(cfg.CertificatesDir, "client.key"),
+				path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName))
+			if err != nil {
+				return false, fmt.Errorf("[etcd] Fail to retrieve client from etcd [%v]", err)
+			}
+			var clusterflag = ""
+			cluster := clientv3.NewCluster(client)
+			ctx, cancel := context.WithTimeout(context.Background(), kubeadmconstants.DiscoveryRetryInterval)
+			defer cancel()
+			if memberListResponse, err := cluster.MemberList(ctx); err != nil {
+				return false, fmt.Errorf("[etcd]  Fail to retrieve members of etcd,%s", err)
+			} else {
+				//m, _ := json.Marshal(members)
+				//fmt.Printf("[manifests] Etcd members existed :[%s]\n", string(m))
+				isMemberAdded := false
+				for _, member := range memberListResponse.Members {
+					if member.Name == "" && member.PeerURLs[0] != NewMemberPeerUrl {
+						return false, fmt.Errorf("[etcd]  There's a member not ready, please wait the previous installation finished or remove it mannually")
+					} else if member.PeerURLs[0] != NewMemberPeerUrl {
+						clusterflag += "," + member.Name + "=" + member.PeerURLs[0]
+					} else {
+						isMemberAdded = true
+					}
+				}
+				InitialClusterFlag += clusterflag
+				InitialClusterStatus = "existing"
+				if isMemberAdded == false {
+					cluster.MemberAdd(ctx,[]string{NewMemberPeerUrl})
+				}
+				return true, nil
+			}
+			})
+		}
 
 
 	defaultArguments := map[string]string{

@@ -22,6 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeletscheme "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/scheme"
@@ -85,6 +86,10 @@ func SetDefaults_MasterConfiguration(obj *MasterConfiguration) {
 
 	if obj.Networking.ServiceSubnet == "" {
 		obj.Networking.ServiceSubnet = DefaultServicesSubnet
+	}
+
+	if obj.Networking.PodSubnet == "" {
+		obj.Networking.PodSubnet = util.GetAvailiablePodCIDR(172,16,31)
 	}
 
 	if obj.Networking.DNSDomain == "" {
