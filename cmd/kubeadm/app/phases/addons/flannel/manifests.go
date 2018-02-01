@@ -64,6 +64,10 @@ metadata:
     tier: node
     app: flannel
 spec:
+  selector:
+    matchLabels:
+      tier: node
+	  app: flannel
   template:
     metadata:
       labels:

@@ -41,6 +41,9 @@ metadata:
     kubernetes.io/cluster-service: "true"
     addonmanager.kubernetes.io/mode: Reconcile
 spec:
+  selector:
+    matchLabels:
+      k8s-app: kube-dns-autoscaler
   template:
     metadata:
       labels:

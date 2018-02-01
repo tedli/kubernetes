@@ -33,7 +33,7 @@ func CreateDnsAutoscalerAddOns(cfg *kubeadmapi.MasterConfiguration, client clien
 	if err := createDnsAutoscaler(deploymentBytes, client); err != nil {
 		return err
 	}
-	fmt.Println("[addons] Applied essential addon: dns autoscaler")
+	fmt.Println("[addons] Applied essential addon: dns-autoscaler")
 	return nil
 }
 

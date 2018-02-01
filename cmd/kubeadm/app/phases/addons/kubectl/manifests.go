@@ -19,8 +19,16 @@ const (
 kind: DaemonSet
 apiVersion: apps/v1beta2
 metadata:
+  labels:
+    app: kubectl
+    use: webt
   name: kubectl
+  namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      app: kubectl
+      use: webt
   template:
     metadata:
       labels:
@@ -41,27 +49,27 @@ spec:
             - "60"
           image: {{ .ImageRepository }}/kubectl-{{ .Arch }}:{{ .Version }
           volumeMounts:
-            - name: docker-sock
-              mountPath: /var/run/docker.sock
-            - name: localtime
-              mountPath: /etc/localtime
-            - mountPath: /etc/resolv.conf
-              name: resolv
-            - mountPath: /tmp/
-              name: checklog
+          - name: docker-sock
+            mountPath: /var/run/docker.sock
+          - name: localtime
+            mountPath: /etc/localtime
+          - mountPath: /etc/resolv.conf
+            name: resolv
+          - mountPath: /tmp/
+            name: checklog
       volumes:
-        - name: docker-sock
-          hostPath:
-            path: /var/run/docker.sock
-        - name: localtime
-          hostPath:
-            path: /etc/localtime
-        - hostPath:
-            path: /etc/resolv.conf
-          name: resolv
-        - hostPath:
-            path: /tenxcloud/agent_check/
-          name: checklog
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+      - name: localtime
+        hostPath:
+          path: /etc/localtime
+      - hostPath:
+          path: /etc/resolv.conf
+        name: resolv
+      - hostPath:
+          path: /tenxcloud/agent_check/
+        name: checklog
 `
 
   // for kubectl
