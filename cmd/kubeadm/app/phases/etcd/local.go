@@ -55,9 +55,10 @@ func CreateLocalEtcdStaticPodManifestFile(manifestDir string, cfg *kubeadmapi.Ma
 // GetEtcdPodSpec returns the etcd static Pod actualized to the context of the current MasterConfiguration
 // NB. GetEtcdPodSpec methods holds the information about how kubeadm creates etcd static pod mainfests.
 func GetEtcdPodSpec(cfg *kubeadmapi.MasterConfiguration) v1.Pod {
+	pathType := v1.HostPathDirectoryOrCreate
 	etcdMounts := map[string]v1.Volume{
-		etcdVolumeName: staticpodutil.NewVolume(etcdVolumeName, cfg.Etcd.DataDir, &v1.HostPathDirectoryOrCreate),
-		etcdPkiVolumeName: staticpodutil.NewVolume(etcdPkiVolumeName,etcdPkiPath,&v1.HostPathFileOrCreate),
+		etcdVolumeName:    staticpodutil.NewVolume(etcdVolumeName, cfg.Etcd.DataDir, &pathType),
+		etcdPkiVolumeName: staticpodutil.NewVolume(etcdPkiVolumeName, etcdPkiPath, &pathType),
 	}
 	etcdVolumeMounts := []v1.VolumeMount{
 		// Mount the etcd datadir path read-write so etcd can store data in a more persistent manner
@@ -65,9 +66,9 @@ func GetEtcdPodSpec(cfg *kubeadmapi.MasterConfiguration) v1.Pod {
 		staticpodutil.NewVolumeMount(etcdPkiVolumeName, etcdPkiPath, true),
 	}
 	return staticpodutil.ComponentPod(v1.Container{
-		Name:    kubeadmconstants.Etcd,
-		Command: getEtcdCommand(cfg),
-		Image:   images.GetCoreImage(kubeadmconstants.Etcd, cfg.ImageRepository, cfg.KubernetesVersion, cfg.Etcd.Image),
+		Name:          kubeadmconstants.Etcd,
+		Command:       getEtcdCommand(cfg),
+		Image:         images.GetCoreImage(kubeadmconstants.Etcd, cfg.ImageRepository, cfg.KubernetesVersion, cfg.Etcd.Image),
 		VolumeMounts:  etcdVolumeMounts,
 		LivenessProbe: staticpodutil.ComponentProbe(cfg, kubeadmconstants.Etcd, 2379, "/health", v1.URISchemeHTTP),
 	}, etcdMounts)
@@ -121,17 +122,16 @@ func getEtcdCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 				InitialClusterFlag += clusterflag
 				InitialClusterStatus = "existing"
 				if isMemberAdded == false {
-					cluster.MemberAdd(ctx,[]string{NewMemberPeerUrl})
+					cluster.MemberAdd(ctx, []string{NewMemberPeerUrl})
 				}
 				return true, nil
 			}
-			})
-		}
-
+		})
+	}
 
 	defaultArguments := map[string]string{
-		"name":                  NewMemberName,
-		"data-dir":              cfg.Etcd.DataDir,
+		"name":     NewMemberName,
+		"data-dir": cfg.Etcd.DataDir,
 
 		"trusted-ca-file":       path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
 		"key-file":              path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKeyName),
