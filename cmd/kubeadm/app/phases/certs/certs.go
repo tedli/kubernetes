@@ -53,6 +53,7 @@ func CreatePKIAssets(cfg *kubeadmapi.MasterConfiguration) (*x509.Certificate, *r
 		//CreateCACertAndKeyfiles, //ca.crt ca.key
 		CreateAPIServerCertAndKeyFiles,
 		CreateAPIServerKubeletClientCertAndKeyFiles,
+		CreateAPIServerClientCertAndKeyFiles,
 		//CreateServiceAccountKeyAndPublicKeyFiles, //sa.key
 		//CreateFrontProxyCACertAndKeyFiles, use ca.crt ca.key
 		CreateFrontProxyClientCertAndKeyFiles,
@@ -142,6 +143,27 @@ func CreateAPIServerKubeletClientCertAndKeyFiles(cfg *kubeadmapi.MasterConfigura
 		caCert,
 		apiClientCert,
 		apiClientKey,
+	)
+}
+
+func CreateAPIServerClientCertAndKeyFiles(cfg *kubeadmapi.MasterConfiguration) error {
+
+	caCert, caKey, err := loadCertificateAuthorithy(cfg.CertificatesDir, kubeadmconstants.CACertAndKeyBaseName)
+	if err != nil {
+		return err
+	}
+
+	clientCert, clientKey, err := NewAPIServerClientCertAndKey(caCert, caKey)
+	if err != nil {
+		return err
+	}
+
+	return writeCertificateFilesIfNotExist(
+		cfg.CertificatesDir,
+		kubeadmconstants.APIServerClientCertAndKeyBaseName,
+		caCert,
+		clientCert,
+		clientKey,
 	)
 }
 
@@ -251,6 +273,22 @@ func NewAPIServerKubeletClientCertAndKey(caCert *x509.Certificate, caKey *rsa.Pr
 
 	config := certutil.Config{
 		CommonName:   kubeadmconstants.APIServerKubeletClientCertCommonName,
+		Organization: []string{kubeadmconstants.MastersGroup},
+		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+	apiClientCert, apiClientKey, err := pkiutil.NewCertAndKey(caCert, caKey, config)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failure while creating API server kubelet client key and certificate: %v", err)
+	}
+
+	return apiClientCert, apiClientKey, nil
+}
+
+// NewAPIServerClientCertAndKey generate CA certificate for the apiservers to connect to the apiservers securely, signed by the given CA.
+func NewAPIServerClientCertAndKey(caCert *x509.Certificate, caKey *rsa.PrivateKey) (*x509.Certificate, *rsa.PrivateKey, error) {
+
+	config := certutil.Config{
+		CommonName:   kubeadmconstants.APIServerClientCertCommonName,
 		Organization: []string{kubeadmconstants.MastersGroup},
 		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}

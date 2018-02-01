@@ -33,7 +33,9 @@ import (
 )
 
 const (
-	etcdVolumeName = "etcd"
+	etcdVolumeName    = "etcd"
+	etcdPkiVolumeName = "pki"
+	etcdPkiPath       = "/etc/kubernetes/pki"
 )
 
 // CreateLocalEtcdStaticPodManifestFile will write local etcd static pod manifest file.
@@ -53,16 +55,20 @@ func CreateLocalEtcdStaticPodManifestFile(manifestDir string, cfg *kubeadmapi.Ma
 // GetEtcdPodSpec returns the etcd static Pod actualized to the context of the current MasterConfiguration
 // NB. GetEtcdPodSpec methods holds the information about how kubeadm creates etcd static pod mainfests.
 func GetEtcdPodSpec(cfg *kubeadmapi.MasterConfiguration) v1.Pod {
-	pathType := v1.HostPathDirectoryOrCreate
 	etcdMounts := map[string]v1.Volume{
-		etcdVolumeName: staticpodutil.NewVolume(etcdVolumeName, cfg.Etcd.DataDir, &pathType),
+		etcdVolumeName: staticpodutil.NewVolume(etcdVolumeName, cfg.Etcd.DataDir, &v1.HostPathDirectoryOrCreate),
+		etcdPkiVolumeName: staticpodutil.NewVolume(etcdPkiVolumeName,etcdPkiPath,&v1.HostPathFileOrCreate),
+	}
+	etcdVolumeMounts := []v1.VolumeMount{
+		// Mount the etcd datadir path read-write so etcd can store data in a more persistent manner
+		staticpodutil.NewVolumeMount(etcdVolumeName, cfg.Etcd.DataDir, false),
+		staticpodutil.NewVolumeMount(etcdPkiVolumeName, etcdPkiPath, true),
 	}
 	return staticpodutil.ComponentPod(v1.Container{
 		Name:    kubeadmconstants.Etcd,
 		Command: getEtcdCommand(cfg),
 		Image:   images.GetCoreImage(kubeadmconstants.Etcd, cfg.ImageRepository, cfg.KubernetesVersion, cfg.Etcd.Image),
-		// Mount the etcd datadir path read-write so etcd can store data in a more persistent manner
-		VolumeMounts:  []v1.VolumeMount{staticpodutil.NewVolumeMount(etcdVolumeName, cfg.Etcd.DataDir, false)},
+		VolumeMounts:  etcdVolumeMounts,
 		LivenessProbe: staticpodutil.ComponentProbe(cfg, kubeadmconstants.Etcd, 2379, "/health", v1.URISchemeHTTP),
 	}, etcdMounts)
 }
@@ -87,8 +93,8 @@ func getEtcdCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 			existingMember := fmt.Sprintf("https://%s:2379", ip)
 			//fmt.Printf("[manifests] Adding etcd member [ %s ] into an existing cluster [ %s ] !\n",NewMemberPeerUrl,existingMember)
 			client, err := kubeadmutil.NewEtcdClient([]string{existingMember},
-				path.Join(cfg.CertificatesDir, "client.crt"),
-				path.Join(cfg.CertificatesDir, "client.key"),
+				path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerClientCertName),
+				path.Join(cfg.CertificatesDir, kubeadmconstants.APIServerClientKeyName),
 				path.Join(cfg.CertificatesDir, kubeadmconstants.CACertName))
 			if err != nil {
 				return false, fmt.Errorf("[etcd] Fail to retrieve client from etcd [%v]", err)

@@ -37,6 +37,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/discovery"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeletphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubelet"
+	certsphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
 	"k8s.io/kubernetes/cmd/kubeadm/app/preflight"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
@@ -168,7 +169,7 @@ func AddJoinConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.NodeConfigurat
 	flagSet.StringVar(
 		featureGatesString, "feature-gates", *featureGatesString,
 		"A set of key=value pairs that describe feature gates for various features. "+
-			"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+			"Options are:\n"+ strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
 
 	flagSet.StringVar(
 		&cfg.Networking.ServiceSubnet, "service-cidr", cfg.Networking.ServiceSubnet,
@@ -243,7 +244,7 @@ func NewJoin(cfgPath string, args []string, cfg *kubeadmapi.NodeConfiguration, i
 	}
 
 	// Try to start the kubelet service in case it's inactive
-	preflight.TryStartKubelet(ignorePreflightErrors)
+	//preflight.TryStartKubelet(ignorePreflightErrors)
 
 	return &Join{cfg: cfg}, nil
 }
@@ -258,13 +259,18 @@ func (j *Join) Validate(cmd *cobra.Command) error {
 
 // Run executes worker node provisioning and tries to join an existing cluster.
 func (j *Join) Run(out io.Writer) error {
-	cfg, err := discovery.For(j.cfg)
+	cfg,server, err := discovery.For(j.cfg)
 	if err != nil {
 		return err
 	}
 
-	kubeconfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName)
+	if err := certsphase.PerformTLSBootstrap(cfg); err != nil {
+		return err
+	}
+    fmt.Sprintf("%s:%s",cfg.Clusters["kubernetes"].Server,server)
+	cfg.Clusters["kubernetes"].Server = server
 
+	kubeconfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName)
 	// Write the bootstrap kubelet config file or the TLS-Boostrapped kubelet config file down to disk
 	if err := kubeconfigutil.WriteToDisk(kubeconfigFile, cfg); err != nil {
 		return fmt.Errorf("couldn't save bootstrap-kubelet.conf to disk: %v", err)
@@ -284,7 +290,7 @@ func (j *Join) Run(out io.Writer) error {
 		}
 	}
 
-	err = kubeletphase.TryInstallKubelet(j.cfg.Networking.ServiceSubnet, j.cfg.ImageRepository, j.cfg.Networking.DNSDomain, j.cfg.KubernetesVersion)
+	err = kubeletphase.TryInstallKubelet(j.cfg.Networking.ServiceSubnet, j.cfg.Networking.DNSDomain, j.cfg.ImageRepository, j.cfg.KubernetesVersion)
 	if err != nil {
 		return err
 	}

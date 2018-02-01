@@ -217,6 +217,11 @@ func (in *MasterConfiguration) DeepCopyInto(out *MasterConfiguration) {
 			(*out)[key] = val
 		}
 	}
+	if in.DiscoveryTokenCACertHashes != nil {
+		in, out := &in.DiscoveryTokenCACertHashes, &out.DiscoveryTokenCACertHashes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -276,6 +281,7 @@ func (in *NodeConfiguration) DeepCopyInto(out *NodeConfiguration) {
 			(*out)[key] = val
 		}
 	}
+	out.Networking = in.Networking
 	return
 }
 

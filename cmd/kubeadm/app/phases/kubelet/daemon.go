@@ -68,10 +68,11 @@ func writeKubeletService(serviceSubnet, DNSDomain, imageRepository, KubernetesVe
 [Unit]
 Description=kubelet: The Kubernetes Node Agent
 Documentation=http://kubernetes.io/docs/
+After=network.target docker.service
 
 [Service]
 ExecStart=/usr/bin/kubelet
-Restart=always
+Restart=on-failure
 StartLimitInterval=0
 RestartSec=10
 
@@ -102,9 +103,8 @@ WantedBy=multi-user.target
 	buf.WriteString("Environment=\"KUBELET_NETWORK_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin\"\n")
 	buf.WriteString("Environment=\"KUBELET_DNS_ARGS=--cluster-dns=" + dnsIP.String() + "   --cluster-domain=" + DNSDomain + "\"\n")
 	buf.WriteString("Environment=\"KUBELET_AUTHZ_ARGS=--client-ca-file=/etc/kubernetes/pki/ca.crt  --anonymous-auth=false --authorization-mode=Webhook --authentication-token-webhook \"\n")
-	buf.WriteString("Environment=\"KUBELET_CADVISOR_ARGS=--cadvisor-port=0 --housekeeping-interval=5s  --global-housekeeping-interval=5s\"")
-	buf.WriteString("Environment=\"KUBELET_CERT_ARGS=--feature-gates=RotateKubeletServerCertificate=true  \"\n")
-
+	buf.WriteString("Environment=\"KUBELET_CADVISOR_ARGS=--cadvisor-port=0 --housekeeping-interval=5s  --global-housekeeping-interval=5s \"\n")
+	buf.WriteString("Environment=\"KUBELET_CERT_ARGS=--rotate-certificates=true --cert-dir=/var/lib/kubelet/pki --feature-gates=RotateKubeletServerCertificate=true  \"\n")
 	buf.WriteString("Environment=\"KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs  --pod-infra-container-image=" + fmt.Sprintf("%s/pause-%s:3.0", imageRepository, runtime.GOARCH) + "\"\n")
 	buf.WriteString("Environment=\"KUBELET_PERFORMANCE_ARGS=--kube-reserved=cpu=200m,memory=512Mi  \"\n")
 	buf.WriteString("ExecStartPre=/usr/bin/docker run --rm -v /opt/tmp/bin/:/opt/tmp/bin/   ")
@@ -112,13 +112,14 @@ WantedBy=multi-user.target
 	buf.WriteString(" /bin/bash -c \"mkdir -p /opt/tmp/bin && cp /opt/cni/bin/* /opt/tmp/bin/ && cp /usr/bin/nsenter /opt/tmp/bin/\" \n")
 	buf.WriteString("ExecStartPre=/bin/bash -c \"mkdir -p /opt/cni/bin && cp -r /opt/tmp/bin/ /opt/cni/ && cp /opt/tmp/bin/nsenter /usr/bin/ && rm -r /opt/tmp\"\n")
 	buf.WriteString("ExecStartPre=/bin/bash -c \"docker inspect kubelet >/dev/null 2>&1 && docker rm -f kubelet || true \" \n")
+	buf.WriteString("ExecStart= \n")
 	buf.WriteString("ExecStart=/bin/bash -c \"docker run --name kubelet --net=host --privileged --pid=host -v /:/rootfs:ro ")
 	buf.WriteString("-v /dev:/dev -v /var/log:/var/log:shared -v /var/lib/docker/:/var/lib/docker:rw  ")
 	buf.WriteString("-v /var/lib/kubelet/:/var/lib/kubelet:shared -v /etc/kubernetes:/etc/kubernetes:ro ")
 	buf.WriteString("-v /etc/cni:/etc/cni:rw -v /sys:/sys:ro -v /var/run:/var/run:rw -v /opt/cni/bin/:/opt/cni/bin/ ")
 	buf.WriteString("-v /srv/kubernetes:/srv/kubernetes:ro ")
 	buf.WriteString(fmt.Sprintf("%s/hyperkube-%s:%s", imageRepository, runtime.GOARCH, KubernetesVersion))
-	buf.WriteString(" nsenter --target=1 --mount --wd=./ -- hyperkube kubelet ")
+	buf.WriteString(" nsenter --target=1 --mount --wd=./ -- ./hyperkube kubelet ")
 	buf.WriteString(" $KUBELET_KUBECONFIG_ARGS $KUBELET_SYSTEM_PODS_ARGS $KUBELET_NETWORK_ARGS $KUBELET_DNS_ARGS $KUBELET_AUTHZ_ARGS  $KUBELET_CADVISOR_ARGS $KUBELET_CERT_ARGS $KUBELET_CGROUP_ARGS $KUBELET_EXTRA_ARGS $KUBELET_PERFORMANCE_ARGS \" \n")
 	buf.WriteString("ExecStop=/usr/bin/docker stop kubelet \n")
 	buf.WriteString("ExecStopPost=/usr/bin/docker rm -f kubelet \n")

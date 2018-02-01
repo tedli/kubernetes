@@ -32,6 +32,10 @@ import (
 const (
 	caCertsVolumeName       = "ca-certs"
 	caCertsVolumePath       = "/etc/ssl/certs"
+	localTimeVolumeName     = "localtime"
+	localTimeVolumePath     = "/etc/localtime"
+	hostsVolumeName         = "hosts"
+	hostsVolumePath         = "/etc/hosts"
 	caCertsPkiVolumeName    = "ca-certs-etc-pki"
 	flexvolumeDirVolumeName = "flexvolume-dir"
 	cloudConfigVolumeName   = "cloud-config"
@@ -55,6 +59,10 @@ func getHostPathVolumesForTheControlPlane(cfg *kubeadmapi.MasterConfiguration) c
 	mounts.NewHostPathMount(kubeadmconstants.KubeAPIServer, kubeadmconstants.KubeCertificatesVolumeName, cfg.CertificatesDir, cfg.CertificatesDir, true, &hostPathDirectoryOrCreate)
 	// Read-only mount for the ca certs (/etc/ssl/certs) directory
 	mounts.NewHostPathMount(kubeadmconstants.KubeAPIServer, caCertsVolumeName, caCertsVolumePath, caCertsVolumePath, true, &hostPathDirectoryOrCreate)
+    // Read-only mount for the /etc/localtime
+	mounts.NewHostPathMount(kubeadmconstants.KubeAPIServer, localTimeVolumeName, localTimeVolumePath, localTimeVolumePath, true, &hostPathFileOrCreate)
+	// Read-only mount for the /etc/hosts
+	mounts.NewHostPathMount(kubeadmconstants.KubeAPIServer, hostsVolumeName, hostsVolumePath, hostsVolumePath, true, &hostPathFileOrCreate)
 
 	// If external etcd is specified, mount the directories needed for accessing the CA/serving certs and the private key
 	if len(cfg.Etcd.Endpoints) != 0 {
@@ -71,6 +79,9 @@ func getHostPathVolumesForTheControlPlane(cfg *kubeadmapi.MasterConfiguration) c
 	// Read-only mount for the controller manager kubeconfig file
 	controllerManagerKubeConfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ControllerManagerKubeConfigFileName)
 	mounts.NewHostPathMount(kubeadmconstants.KubeControllerManager, kubeadmconstants.KubeConfigVolumeName, controllerManagerKubeConfigFile, controllerManagerKubeConfigFile, true, &hostPathFileOrCreate)
+	// Read-only mount for the /etc/localtime
+	mounts.NewHostPathMount(kubeadmconstants.KubeControllerManager, localTimeVolumeName, localTimeVolumePath, localTimeVolumePath, true, &hostPathFileOrCreate)
+
 	// Read-only mount of the cloud config file if present
 	if cfg.CloudProvider != "" {
 		if _, err := os.Stat(DefaultCloudConfigPath); err == nil {
@@ -88,6 +99,9 @@ func getHostPathVolumesForTheControlPlane(cfg *kubeadmapi.MasterConfiguration) c
 	// Read-only mount for the scheduler kubeconfig file
 	schedulerKubeConfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.SchedulerKubeConfigFileName)
 	mounts.NewHostPathMount(kubeadmconstants.KubeScheduler, kubeadmconstants.KubeConfigVolumeName, schedulerKubeConfigFile, schedulerKubeConfigFile, true, &hostPathFileOrCreate)
+	// Read-only mount for the /etc/localtime
+	mounts.NewHostPathMount(kubeadmconstants.KubeScheduler, localTimeVolumeName, localTimeVolumePath, localTimeVolumePath, true, &hostPathFileOrCreate)
+
 
 	// On some systems were we host-mount /etc/ssl/certs, it is also required to mount /etc/pki. This is needed
 	// due to symlinks pointing from files in /etc/ssl/certs into /etc/pki/

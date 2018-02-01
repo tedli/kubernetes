@@ -214,6 +214,10 @@ func autoConvert_v1alpha1_MasterConfiguration_To_kubeadm_MasterConfiguration(in 
 	out.ImageRepository = in.ImageRepository
 	out.UnifiedControlPlaneImage = in.UnifiedControlPlaneImage
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.HighAvailabilityPeer = in.HighAvailabilityPeer
+	out.DiscoveryTokenCACertHashes = *(*[]string)(unsafe.Pointer(&in.DiscoveryTokenCACertHashes))
+	out.ApiServerUrl = in.ApiServerUrl
+	out.ApiServerCredential = in.ApiServerCredential
 	return nil
 }
 
@@ -256,6 +260,10 @@ func autoConvert_kubeadm_MasterConfiguration_To_v1alpha1_MasterConfiguration(in 
 	// INFO: in.CIImageRepository opted out of conversion generation
 	out.UnifiedControlPlaneImage = in.UnifiedControlPlaneImage
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.HighAvailabilityPeer = in.HighAvailabilityPeer
+	out.DiscoveryTokenCACertHashes = *(*[]string)(unsafe.Pointer(&in.DiscoveryTokenCACertHashes))
+	out.ApiServerUrl = in.ApiServerUrl
+	out.ApiServerCredential = in.ApiServerCredential
 	return nil
 }
 
@@ -299,6 +307,11 @@ func autoConvert_v1alpha1_NodeConfiguration_To_kubeadm_NodeConfiguration(in *Nod
 	out.DiscoveryTokenCACertHashes = *(*[]string)(unsafe.Pointer(&in.DiscoveryTokenCACertHashes))
 	out.DiscoveryTokenUnsafeSkipCAVerification = in.DiscoveryTokenUnsafeSkipCAVerification
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.ImageRepository = in.ImageRepository
+	if err := Convert_v1alpha1_Networking_To_kubeadm_Networking(&in.Networking, &out.Networking, s); err != nil {
+		return err
+	}
+	out.KubernetesVersion = in.KubernetesVersion
 	return nil
 }
 
@@ -318,6 +331,11 @@ func autoConvert_kubeadm_NodeConfiguration_To_v1alpha1_NodeConfiguration(in *kub
 	out.DiscoveryTokenCACertHashes = *(*[]string)(unsafe.Pointer(&in.DiscoveryTokenCACertHashes))
 	out.DiscoveryTokenUnsafeSkipCAVerification = in.DiscoveryTokenUnsafeSkipCAVerification
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.ImageRepository = in.ImageRepository
+	if err := Convert_kubeadm_Networking_To_v1alpha1_Networking(&in.Networking, &out.Networking, s); err != nil {
+		return err
+	}
+	out.KubernetesVersion = in.KubernetesVersion
 	return nil
 }
 

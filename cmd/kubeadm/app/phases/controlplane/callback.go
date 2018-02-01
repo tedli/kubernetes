@@ -28,7 +28,7 @@ import (
 func CallBack(tceCredential, tceAddress, k8sToken, k8sAddress string) error {
 	credential := strings.Split(tceCredential, ":")
 	if len(credential) < 2 {
-		return fmt.Errorf("There's not valide cridiential for TenxCloud Enterprise Server, please provide correct one \n")
+		return fmt.Errorf("[callback] There's not valide cridiential for TenxCloud Enterprise Server, please provide correct one \n")
 	}
 	params := make(map[string]string)
 	id := randInt(0, 1000)
@@ -39,11 +39,11 @@ func CallBack(tceCredential, tceAddress, k8sToken, k8sAddress string) error {
 	params["description"] = CLUSTER_NAME_PREFIX + strconv.Itoa(id)
 	playload, err := json.Marshal(params)
 	if err != nil {
-		return fmt.Errorf(" Failed to consturct an HTTP request [%v] \n", err)
+		return fmt.Errorf("[callback] Failed to consturct an HTTP request [%v] \n", err)
 	}
 	req, err := http.NewRequest("POST", tceAddress, bytes.NewBuffer(playload))
 	if err != nil {
-		return fmt.Errorf(" Failed to consturct an HTTP request [%v] \n", err)
+		return fmt.Errorf("[callback] Failed to consturct an HTTP request [%v] \n", err)
 	}
 	req.Header.Set("username", credential[0])
 	req.Header.Set("authorization", fmt.Sprintf("token %s", credential[1]))
@@ -58,11 +58,11 @@ func CallBack(tceCredential, tceAddress, k8sToken, k8sAddress string) error {
 	response, err := client.Do(req)
 	defer response.Body.Close()
 	if err != nil {
-		return fmt.Errorf("Failed to callback TenxCloud Enterprise Server to register the cluster [%v] \n ", err)
+		return fmt.Errorf("[callback] Failed to callback TenxCloud Enterprise Server to register the cluster [%v] \n ", err)
 	}
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("Failed to ReadAll cluster info [%v],Body: %v \n", err, string(body))
+		return fmt.Errorf("[callback] Failed to ReadAll cluster info [%v],Body: %v \n", err, string(body))
 	}
 	fmt.Println("[callback] Cluster was registered to TenxCloud Enterprise Server Successfully \n ")
 	return nil

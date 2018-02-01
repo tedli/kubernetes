@@ -69,7 +69,7 @@ var (
 		before the client trusts the API server. 
 
 		See online documentation about Authenticating with Bootstrap Tokens for more details.
-		`+cmdutil.AlphaDisclaimer), bootstrapapi.ConfigMapClusterInfo, metav1.NamespacePublic)
+		`+ cmdutil.AlphaDisclaimer), bootstrapapi.ConfigMapClusterInfo, metav1.NamespacePublic)
 
 	nodePostCSRsLongDesc = normalizer.LongDesc(`
 		Configures RBAC rules to allow node bootstrap tokens to post a certificate signing request,
@@ -140,7 +140,7 @@ func NewSubCmdBootstrapTokenAll(kubeConfigFile *string) *cobra.Command {
 			kubeadmutil.CheckErr(err)
 
 			// Create the cluster-info ConfigMap or update if it already exists
-			err = clusterinfo.CreateBootstrapConfigMapIfNotExists(client, *kubeConfigFile)
+			err = clusterinfo.CreateBootstrapConfigMapIfNotExists(client, *kubeConfigFile, "", nil, nil, nil)
 			kubeadmutil.CheckErr(err)
 
 			// Create the RBAC rules that expose the cluster-info ConfigMap properly
@@ -216,7 +216,7 @@ func NewSubCmdClusterInfo(kubeConfigFile *string) *cobra.Command {
 			kubeadmutil.CheckErr(err)
 
 			// Create the cluster-info ConfigMap or update if it already exists
-			err = clusterinfo.CreateBootstrapConfigMapIfNotExists(client, *kubeConfigFile)
+			err = clusterinfo.CreateBootstrapConfigMapIfNotExists(client, *kubeConfigFile, "", nil, nil, nil)
 			kubeadmutil.CheckErr(err)
 
 			// Create the RBAC rules that expose the cluster-info ConfigMap properly

@@ -5,10 +5,10 @@
  */
 
  /**
-  *  Calico Version v2.6.6
-  *  https://docs.projectcalico.org/v2.6/releases#v2.6.6
+  *  Calico Version v2.6.7
+  *  https://docs.projectcalico.org/v2.6/releases#v2.6.7
   *  This manifest includes the following component versions:
-  *    quay.io/calico/node:v2.6.6
+  *    quay.io/calico/node:v2.6.7
   *    quay.io/calico/cni:v1.11.2               # https://github.com/projectcalico/cni-plugin/blob/master/k8s-install/scripts/install-cni.sh
   *    quay.io/calico/ctl:v1.6.3
   *    quay.io/calico/kube-controllers:v1.0.3
@@ -91,7 +91,7 @@ spec:
       terminationGracePeriodSeconds: 0
       containers:
         - name: calico-node
-          image: {{ .ImageRepository }}/node:v2.6.6
+          image: {{ .ImageRepository }}/node:v2.6.7
           env:
             - name: ETCD_ENDPOINTS
               value: https://kubernetes.default.svc.cluster.local:2379
