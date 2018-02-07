@@ -11,7 +11,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 
-	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/calico"
+	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/network"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/dns"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/dnsautoscaler"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/kubectl"
@@ -25,10 +25,8 @@ import (
 // kubectl
 func DeployAddons(cfg *kubeadmapi.MasterConfiguration, client clientset.Interface) error {
 
-	//TODO: FIXME:
-	//network plugin(calico,flannel,canal,macvlan)
-	if err := calico.CreateCalicoAddon(cfg, client); err != nil {
-		return fmt.Errorf("error setup calico addon: %v", err)
+	if err := network.DeployNetworkAddons(cfg,client); err != nil {
+		return fmt.Errorf("error setup network addon: %v", err)
 	}
 
 	if err := dns.EnsureDNSAddon(cfg, client); err != nil {

@@ -69,6 +69,8 @@ spec:
       tolerations:
       - key: "CriticalAddonsOnly"
         operator: "Exists"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       serviceAccountName: kube-dns-autoscaler
 `
 

@@ -159,6 +159,18 @@ func SetDefaults_NodeConfiguration(obj *NodeConfiguration) {
 			obj.DiscoveryFile = u.Path
 		}
 	}
+
+	if obj.Networking.ServiceSubnet == "" {
+		obj.Networking.ServiceSubnet = DefaultServicesSubnet
+	}
+
+	if obj.Networking.PodSubnet == "" {
+		obj.Networking.PodSubnet = util.GetAvailiablePodCIDR(172,16,31)
+	}
+
+	if obj.Networking.DNSDomain == "" {
+		obj.Networking.DNSDomain = DefaultServiceDNSDomain
+	}
 }
 
 // SetDefaultsEtcdSelfHosted sets defaults for self-hosted etcd if used

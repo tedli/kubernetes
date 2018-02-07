@@ -47,7 +47,7 @@ spec:
           command:
             - /check.sh
             - "60"
-          image: {{ .ImageRepository }}/kubectl-{{ .Arch }}:{{ .Version }
+          image: {{ .ImageRepository }}/kubectl-{{ .Arch }}:{{ .Version }}
           volumeMounts:
           - name: docker-sock
             mountPath: /var/run/docker.sock

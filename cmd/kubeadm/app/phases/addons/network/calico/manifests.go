@@ -29,9 +29,14 @@ const (
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cni-config
+  name: calico-config
   namespace: kube-system
 data:
+  etcd_endpoints: "https://kubernetes.default.svc.cluster.local:2379"
+  etcd_ca: "/etc/kubernetes/pki/ca.crt"
+  etcd_cert: "/etc/kubernetes/pki/client.crt"
+  etcd_key: "/etc/kubernetes/pki/client.key"
+  calico_backend: "bird"
   cni_network_config: |-
     {
         "name": "k8s-pod-network",
@@ -40,7 +45,7 @@ data:
         "etcd_endpoints": "__ETCD_ENDPOINTS__",
         "etcd_key_file": "__ETCD_KEY_FILE__",
         "etcd_cert_file": "__ETCD_CERT_FILE__",
-        "etcd_ca_cert_file ": "__ETCD_CA_CERT_FILE__",
+        "etcd_ca_cert_file": "__ETCD_CA_CERT_FILE__",
         "log_level": "info",
         "mtu": 1500,
         "ipam": {
@@ -87,16 +92,37 @@ spec:
         effect: NoSchedule
       - key: CriticalAddonsOnly
         operator: Exists
-      serviceAccountName: calico-cni-plugin
+      serviceAccountName: calico-node
       terminationGracePeriodSeconds: 0
       containers:
         - name: calico-node
           image: {{ .ImageRepository }}/node:v2.6.7
           env:
             - name: ETCD_ENDPOINTS
-              value: https://kubernetes.default.svc.cluster.local:2379
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_endpoints
+            - name: ETCD_CA_CERT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_ca
+            - name: ETCD_KEY_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_key
+            - name: ETCD_CERT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_cert
             - name: CALICO_NETWORKING_BACKEND
-              value: bird
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: calico_backend
             - name: CLUSTER_TYPE
               value: "kubeadm,bgp"
             - name: CALICO_K8S_NODE_REF
@@ -143,7 +169,7 @@ spec:
             - mountPath: /var/run/calico
               name: var-run-calico
               readOnly: false
-            - mountPath: /etc/kubernetes/
+            - mountPath: /etc/kubernetes/pki
               name: k8s-certs
               readOnly: true
             - mountPath: /etc/resolv.conf
@@ -154,17 +180,29 @@ spec:
           command: ["/install-cni.sh"]
           env:
             - name: ETCD_ENDPOINTS
-              value: https://kubernetes.default.svc.cluster.local:2379
-            - name: CNI_CONF_ETCD_CERT
-              value: /etc/kubernetes/pki/client.crt
-            - name: CNI_CONF_ETCD_KEY
-              value: /etc/kubernetes/pki/client.key
-            - name: CNI_CONF_ETCD_CA
-              value: /etc/kubernetes/pki/ca.crt
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_endpoints
+            - name: ETCD_CERT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_cert
+            - name: ETCD_KEY_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_key
+            - name: ETCD_CA_CERT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: etcd_ca
             - name: CNI_NETWORK_CONFIG
               valueFrom:
                 configMapKeyRef:
-                  name: cni-config
+                  name: calico-config
                   key: cni_network_config
           volumeMounts:
             - mountPath: /host/opt/cni/bin
@@ -175,43 +213,52 @@ spec:
         - name: lib-modules
           hostPath:
             path: /lib/modules
+            type: DirectoryOrCreate
         - name: var-run-calico
           hostPath:
             path: /var/run/calico
+            type: DirectoryOrCreate
         - name: cni-bin-dir
           hostPath:
             path: /opt/cni/bin
+            type: DirectoryOrCreate
         - name: cni-net-dir
           hostPath:
             path: /etc/cni/net.d
+            type: DirectoryOrCreate
         - name: k8s-certs
           hostPath:
-            path: /etc/kubernetes
+            path: /etc/kubernetes/pki
+            type: DirectoryOrCreate
         - name: etc-resolv-conf
           hostPath:
-            path: /etc/resolv.conf`
+            path: /etc/resolv.conf
+            type: FileOrCreate`
 
     // This manifest installs the calico/kube-controllers container on each master.
     // See https://github.com/projectcalico/kube-controllers
     //     https://github.com/kubernetes/contrib/tree/master/election
     KubeController = `
 apiVersion: apps/v1beta2
-kind: DaemonSet
+kind: Deployment
 metadata:
-  name: kube-policy-controller
+  name: kube-controller
   namespace: kube-system
   labels:
-    k8s-app: kube-policy-controller
+    k8s-app: kube-controller
 spec:
+  replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
-      k8s-app: kube-policy-controller
+      k8s-app: kube-controller
   template:
     metadata:
-      name: kube-policy-controller
+      name: kube-controller
       namespace: kube-system
       labels:
-        k8s-app: kube-policy-controller
+        k8s-app: kube-controller
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
@@ -226,29 +273,52 @@ spec:
         effect: NoSchedule
       - key: CriticalAddonsOnly
         operator: Exists
-      serviceAccountName: calico-kube-controllers
+      serviceAccountName: kube-controllers
       containers:
-      - name: kube-policy-controller
+      - name: kube-controller
         image: {{ .ImageRepository }}/kube-controllers:v1.0.3
         imagePullPolicy: IfNotPresent
         env:
           - name: ETCD_ENDPOINTS
-            value: http://127.0.0.1:2379
-          - name: K8S_API
-            value: https://kubernetes.default.svc.cluster.local:6443
-          - name: LEADER_ELECTION
-            value: "true"
+            valueFrom:
+              configMapKeyRef:
+                name: calico-config
+                key: etcd_endpoints
+          - name: ETCD_CA_CERT_FILE
+            valueFrom:
+              configMapKeyRef:
+                name: calico-config
+                key: etcd_ca
+          - name: ETCD_KEY_FILE
+            valueFrom:
+              configMapKeyRef:
+                name: calico-config
+                key: etcd_key
+          - name: ETCD_CERT_FILE
+            valueFrom:
+              configMapKeyRef:
+                name: calico-config
+                key: etcd_cert
+          - name: KUBECONFIG
+            value: /etc/kubernetes/kubelet.conf
           - name: ENABLED_CONTROLLERS
             value: policy,profile,workloadendpoint,node
-      - name: leader-elector
-        image: {{ .ImageRepository }}/leader-elector:0.5
-        imagePullPolicy: IfNotPresent
-        args:
-        - --election=kube-policy-election
-        - --election-namespace=kube-system
-        - --http=127.0.0.1:4040
-        securityContext:
-          privileged: true`
+        volumeMounts:
+          - mountPath: /etc/resolv.conf
+            name: etc-resolv-conf
+            readOnly: true
+          - mountPath: /etc/kubernetes
+            name: k8s-certs
+            readOnly: true
+      volumes:
+        - name: etc-resolv-conf
+          hostPath:
+            path: /etc/resolv.conf
+            type: FileOrCreate
+        - name: k8s-certs
+          hostPath:
+            path: /etc/kubernetes
+            type: DirectoryOrCreate`
 
 
 	CtlConfigMap = `
@@ -325,7 +395,7 @@ spec:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: calico-cni-plugin
+  name: system:calico-node
 rules:
   - apiGroups: [""]
     resources:
@@ -338,21 +408,21 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: calico-cni-plugin
+  name: calico-node
   namespace: kube-system`
 
 	CalicoClusterRoleBinding = `
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: calico-cni-plugin
+  name: system:calico-node
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: calico-cni-plugin
+  name: system:calico-node
 subjects:
 - kind: ServiceAccount
-  name: calico-cni-plugin
+  name: calico-node
   namespace: kube-system`
 
     // for calico/kube-controllers
@@ -360,7 +430,7 @@ subjects:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: calico-kube-controllers
+  name: system:kube-controllers
 rules:
   - apiGroups:
     - ""
@@ -378,21 +448,27 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: calico-kube-controllers
+  name: kube-controllers
   namespace: kube-system`
 
 	CalicoControllersClusterRoleBinding = `
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: calico-kube-controllers
+  name: system:kube-controllers
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: calico-kube-controllers
+  name: system:kube-controllers
 subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:masters
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:nodes
 - kind: ServiceAccount
-  name: calico-kube-controllers
+  name: kube-controllers
   namespace: kube-system`
 
 )

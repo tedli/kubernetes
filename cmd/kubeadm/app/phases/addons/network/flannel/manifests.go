@@ -7,6 +7,7 @@ package flannel
 
 
 /**
+ *  quay.io/coreos/flannel:v0.10.0
  *  quay.io/coreos/flannel:v0.10.0-amd64
  *  https://github.com/coreos/flannel/blob/master/Documentation/configuration.md
  *  https://github.com/coreos/flannel/blob/master/Documentation/backends.md
@@ -67,7 +68,7 @@ spec:
   selector:
     matchLabels:
       tier: node
-	  app: flannel
+      app: flannel
   template:
     metadata:
       labels:
@@ -84,7 +85,7 @@ spec:
       serviceAccountName: flannel
       initContainers:
       - name: install-cni
-        image: {{ .ImageRepository }}/flannel:{{ .Version }}-{{ .Arch }}
+        image: {{ .ImageRepository }}/flannel:{{ .Version }}
         command:
         - cp
         args:
@@ -98,12 +99,15 @@ spec:
           mountPath: /etc/kube-flannel/
       containers:
       - name: flannel
-        image: quay.io/coreos/flannel:v0.10.0-amd64
+        image: {{ .ImageRepository }}/flannel:{{ .Version }}
         command:
         - /opt/bin/flanneld
         args:
+        - --etcd-endpoints=https://kubernetes.default.svc.cluster.local:2379
+        - --etcd-cafile=/etc/kubernetes/pki/ca.crt
+        - --etcd-certfile=/etc/kubernetes/pki/client.crt
+        - --etcd-keyfile=/etc/kubernetes/pki/client.key
         - --ip-masq
-        - --kube-subnet-mgr
         resources:
           requests:
             cpu: "100m"
@@ -127,17 +131,83 @@ spec:
           mountPath: /run
         - name: config
           mountPath: /etc/kube-flannel/
+        - name: pki
+          mountPath: /etc/kubernetes/pki
+          readOnly: true
+        - name: etc-resolv-conf
+          mountPath: /etc/resolv.conf
+          readOnly: true
       volumes:
         - name: run
           hostPath:
             path: /run
+            type: DirectoryOrCreate
         - name: cni
           hostPath:
             path: /etc/cni/net.d
+            type: DirectoryOrCreate
+        - name: pki
+          hostPath:
+            path: /etc/kubernetes/pki
+            type: DirectoryOrCreate
+        - name: etc-resolv-conf
+          hostPath:
+            path: /etc/resolv.conf
+            type: FileOrCreate
         - name: config
           configMap:
             name: flannel
 `
+
+	//This manifest deploys a Job which performs one time configuration of Canal.
+	Job = `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configure-flannel
+  namespace: kube-system
+  labels:
+    k8s-app: flannel
+spec:
+  template:
+    metadata:
+      name: configure-flannel
+    spec:
+      hostNetwork: true
+      restartPolicy: OnFailure
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+        - name: configure-flannel
+          image: {{ .Image }}
+          command:
+          - "etcdctl"
+          - "--endpoints=https://kubernetes.default.svc.cluster.local:2379"
+          - "--cert-file=/etc/kubernetes/pki/client.crt"
+          - "--key-file=/etc/kubernetes/pki/client.key"
+          - "--ca-file=/etc/kubernetes/pki/ca.crt"
+          - "--no-sync"
+          - "set"
+          - "/coreos.com/network/config"
+          - '{ "Network": "{{ .PodSubnet }}", "Backend": {"Type": "vxlan"} }'
+          volumeMounts:
+            - mountPath: /etc/kubernetes/pki
+              name: pki
+              readOnly: true
+            - name: etc-resolv-conf
+              mountPath: /etc/resolv.conf
+              readOnly: true
+      volumes:
+        - name: pki
+          hostPath:
+            path: /etc/kubernetes/pki
+            type: DirectoryOrCreate
+        - name: etc-resolv-conf
+          hostPath:
+            path: /etc/resolv.conf
+            type: FileOrCreate`
+
 
 	// for flannel
 	ServiceAccount = `

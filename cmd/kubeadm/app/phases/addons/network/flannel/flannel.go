@@ -8,30 +8,42 @@ package flannel
 
 import (
 	"fmt"
-	"runtime"
 
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	batch "k8s.io/api/batch/v1"
 	apps "k8s.io/api/apps/v1beta2"
 	clientset "k8s.io/client-go/kubernetes"
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/cmd/kubeadm/app/images"
 )
 
 func CreateFlannelAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Interface) error {
-	//PHASE 1: create flannel containers
-	daemonSetBytes, err := kubeadmutil.ParseTemplate(DaemonSet, struct{ ImageRepository, Arch, Version string }{
+	//PHASE 1: create  etcdctl job to configure flannel ip pool
+	ctlJobBytes, err := kubeadmutil.ParseTemplate(Job, struct{Image,PodSubnet string }{
+		Image:      images.GetCoreImage(kubeadmconstants.Etcd, cfg.ImageRepository, cfg.KubernetesVersion, cfg.Etcd.Image),
+		PodSubnet:  cfg.Networking.PodSubnet,
+	})
+	if err != nil {
+		return fmt.Errorf("error when parsing etcdctl job template: %v", err)
+	}
+	if err := createEtcdCtl(ctlJobBytes, client); err != nil {
+		return err
+	}
+
+	//PHASE 2: create flannel containers
+	daemonSetBytes, err := kubeadmutil.ParseTemplate(DaemonSet, struct{ ImageRepository, Version string }{
 		ImageRepository: cfg.GetControlPlaneImageRepository(),
-		Arch:            runtime.GOARCH,
 		Version:         Version,
 	})
 	if err != nil {
 		return fmt.Errorf("error when parsing flannel daemonset template: %v", err)
 	}
-	//PHASE 2: create flannel configMap
 	configMapBytes, err := kubeadmutil.ParseTemplate(ConfigMap, struct{ PodSubnet, Backend string }{
 		PodSubnet: cfg.Networking.PodSubnet,
 		// TODO: FIXME
@@ -100,3 +112,13 @@ func createFlannel(daemonSetBytes, configBytes []byte, client clientset.Interfac
 	return apiclient.CreateOrUpdateDaemonSet(client, daemonSet)
 
 }
+
+func createEtcdCtl(JobBytes []byte, client clientset.Interface) error {
+	//PHASE 1 : create Job to configure flannel ip pool
+	job := &batch.Job{}
+	if err := kuberuntime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), JobBytes, job); err != nil {
+		return fmt.Errorf("unable to decode configure flannel Job %v", err)
+	}
+	return apiclient.CreateOrUpdateJob(client, job)
+}
+

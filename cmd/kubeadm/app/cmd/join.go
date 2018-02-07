@@ -49,8 +49,7 @@ import (
 var (
 	joinDoneMsgf = dedent.Dedent(`
 		This node has joined the cluster:
-		* Certificate signing request was sent to master and a response
-		  was received.
+		* Certificate signing request was sent to master and a response was received.
 		* The Kubelet was informed of the new secure connection details.
 
 		Run 'kubectl get nodes' on the master to see this node join the cluster.
@@ -264,10 +263,10 @@ func (j *Join) Run(out io.Writer) error {
 		return err
 	}
 
+	cfg.Clusters["kubernetes"].Server = fmt.Sprintf("https://%s",j.cfg.DiscoveryTokenAPIServers[0])
 	if err := certsphase.PerformTLSBootstrap(cfg); err != nil {
 		return err
 	}
-    fmt.Sprintf("%s:%s",cfg.Clusters["kubernetes"].Server,server)
 	cfg.Clusters["kubernetes"].Server = server
 
 	kubeconfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName)

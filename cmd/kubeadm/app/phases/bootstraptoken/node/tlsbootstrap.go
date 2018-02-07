@@ -39,6 +39,12 @@ const (
 	CSRAutoApprovalClusterRoleName = "system:certificates.k8s.io:certificatesigningrequests:nodeclient"
 	// NodeSelfCSRAutoApprovalClusterRoleName is a role defined in default 1.8 RBAC policies for automatic CSR approvals for automatically rotated node certificates
 	NodeSelfCSRAutoApprovalClusterRoleName = "system:certificates.k8s.io:certificatesigningrequests:selfnodeclient"
+
+	// ServerSelfCSRAutoApprovalClusterRoleName is a role defined in default 1.8 RBAC policies for automatic CSR approvals for automatically rotated server certificates
+	ServerSelfCSRAutoApprovalClusterRoleName = "system:certificates.k8s.io:certificatesigningrequests:selfnodeserver"
+
+	ServerSelfCSRAutoApprovalClusterRoleBindingName = "kubeadm:node-autoapprove-selfnodeserver"
+
 	// NodeAutoApproveBootstrapClusterRoleBinding defines the name of the ClusterRoleBinding that makes the csrapprover approve node CSRs
 	NodeAutoApproveBootstrapClusterRoleBinding = "kubeadm:node-autoapprove-bootstrap"
 	// NodeAutoApproveCertificateRotationClusterRoleBinding defines name of the ClusterRoleBinding that makes the csrapprover approve node auto rotated CSRs
@@ -47,7 +53,7 @@ const (
 
 // AllowBootstrapTokensToPostCSRs creates RBAC rules in a way the makes Node Bootstrap Tokens able to post CSRs
 func AllowBootstrapTokensToPostCSRs(client clientset.Interface) error {
-	fmt.Println("[bootstraptoken] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials")
+	fmt.Println("[bootstraptoken] Configured RBAC rules to allow Node Bootstrap tokens to post certificate signing requests")
 
 	return apiclient.CreateOrUpdateClusterRoleBinding(client, &rbac.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -94,7 +100,7 @@ func AutoApproveNodeBootstrapTokens(client clientset.Interface) error {
 func AutoApproveNodeCertificateRotation(client clientset.Interface) error {
 	fmt.Println("[bootstraptoken] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster")
 
-	return apiclient.CreateOrUpdateClusterRoleBinding(client, &rbac.ClusterRoleBinding{
+	selfNodeClient := &rbac.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: NodeAutoApproveCertificateRotationClusterRoleBinding,
 		},
@@ -109,5 +115,72 @@ func AutoApproveNodeCertificateRotation(client clientset.Interface) error {
 				Name: constants.NodesGroup,
 			},
 		},
-	})
+	}
+	if err := apiclient.CreateOrUpdateClusterRoleBinding(client, selfNodeClient); err != nil {
+		fmt.Errorf("Create or Update %s failed, [%v] \n", NodeSelfCSRAutoApprovalClusterRoleName, err)
+	}
+
+	selfNodeServer := &rbac.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ServerSelfCSRAutoApprovalClusterRoleBindingName,
+		},
+		RoleRef: rbac.RoleRef{
+			APIGroup: rbac.GroupName,
+			Kind:     "ClusterRole",
+			Name:     ServerSelfCSRAutoApprovalClusterRoleName,
+		},
+		Subjects: []rbac.Subject{
+			{
+				Kind: "Group",
+				Name: constants.MastersGroup,
+			},
+			{
+				Kind: "Group",
+				Name: constants.NodesGroup,
+			},
+		},
+	}
+	if err := apiclient.CreateOrUpdateClusterRoleBinding(client, selfNodeServer); err != nil {
+		fmt.Errorf("Create or Update %s failed, [%v] \n", ServerSelfCSRAutoApprovalClusterRoleBindingName, err)
+	}
+
+	selfNodeServerClusterRole := &rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ServerSelfCSRAutoApprovalClusterRoleName,
+		},
+		Rules: []rbac.PolicyRule{
+			{
+				APIGroups: []string{"certificates.k8s.io"},
+				Resources: []string{"certificatesigningrequests/selfnodeserver"},
+				Verbs:     []string{"create"},
+			},
+		},
+	}
+	if err := apiclient.CreateOrUpdateClusterRole(client, selfNodeServerClusterRole); err != nil {
+		fmt.Errorf("Create or Update %s failed, [%v] \n", ServerSelfCSRAutoApprovalClusterRoleName, err)
+	}
+	return nil
+}
+
+// AutoApproveNodeCertificateRotation creates RBAC rules in a way that makes Node certificate rotation CSR auto-approved by the csrapprover controller
+// grant ClusterRole cluster-admin to Group kubernetes
+func AllowUserGroupKubernetesIn(client clientset.Interface) error {
+	fmt.Println("[bootstraptoken] Configured RBAC rules to allow users in group kubernetes to access the cluster")
+
+	var options metav1.GetOptions
+	clusterAdminBinding, err := client.RbacV1().ClusterRoleBindings().Get("cluster-admin", options)
+	if err != nil {
+		return err
+	}
+	kubernetes := rbac.Subject{
+		APIGroup: rbac.GroupName,
+		Kind:     "Group",
+		Name:     "kubernetes",
+	}
+	clusterAdminBinding.Subjects = append(clusterAdminBinding.Subjects, kubernetes)
+	_, err = client.RbacV1().ClusterRoleBindings().Update(clusterAdminBinding)
+	if err != nil {
+		return err
+	}
+	return nil
 }

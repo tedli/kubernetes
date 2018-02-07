@@ -101,6 +101,7 @@ type Networking struct {
 	ServiceSubnet string
 	PodSubnet     string
 	DNSDomain     string
+	Plugin        string
 }
 
 // Etcd contains elements describing Etcd configuration

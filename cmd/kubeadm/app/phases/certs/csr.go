@@ -25,7 +25,7 @@ func PerformTLSBootstrap(cfg *clientcmdapi.Config) error {
 		return err
 	}
 
-	fmt.Println("[csr] Created API client to obtain unique certificate for this node, generating keys and certificate signing request")
+	fmt.Println("[csr] Created API client to obtain client certificate for this node, generating keys and certificate signing request")
 
 	key, err := certutil.MakeEllipticPrivateKeyPEM()
 	if err != nil {
@@ -37,11 +37,11 @@ func PerformTLSBootstrap(cfg *clientcmdapi.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to request signed certificate from the API server [%v]", err)
 	}
-	fmt.Println("[csr] Received signed certificate from the API server, generating KubeConfig...")
+	fmt.Println("[csr] Received signed certificate from the API server")
 
 	err = writeApiServerClientCert(cfg, cert, key)
 	if err != nil {
-		return fmt.Errorf("[csr] couldn't save the CA certificate, client certificate,client key to disk: [%v]", err)
+		return fmt.Errorf("[csr] couldn't save client certificate,client key to disk: [%v]", err)
 	}
 	return nil
 }

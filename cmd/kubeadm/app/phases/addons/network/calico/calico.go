@@ -37,13 +37,13 @@ func CreateCalicoAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Int
 		return err
 	}
 	//PHASE 2: create calico kube controllers containers
-	policyControllerDaemonSetBytes, err := kubeadmutil.ParseTemplate(KubeController, struct{ ImageRepository string }{
+	policyControllerDeploymentBytes, err := kubeadmutil.ParseTemplate(KubeController, struct{ ImageRepository string }{
 		ImageRepository: cfg.GetControlPlaneImageRepository(),
 	})
 	if err != nil {
-		return fmt.Errorf("error when parsing calico kube controllers daemonset template: %v", err)
+		return fmt.Errorf("error when parsing kube controllers deployment template: %v", err)
 	}
-	if err := createKubeControllers(policyControllerDaemonSetBytes, client); err != nil {
+	if err := createKubeControllers(policyControllerDeploymentBytes, client); err != nil {
 		return err
 	}
 	//PHASE 3: create calico ctl job to configure ip pool
@@ -54,8 +54,8 @@ func CreateCalicoAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Int
 		return fmt.Errorf("error when parsing calicoctl configmap template: %v", err)
 	}
 
-	ctlJobBytes, err := kubeadmutil.ParseTemplate(CtlJob, struct{ ImageRepository,LabelNodeRoleMaster string }{
-		ImageRepository: cfg.GetControlPlaneImageRepository(),
+	ctlJobBytes, err := kubeadmutil.ParseTemplate(CtlJob, struct{ ImageRepository, LabelNodeRoleMaster string }{
+		ImageRepository:     cfg.GetControlPlaneImageRepository(),
 		LabelNodeRoleMaster: kubeadmconstants.LabelNodeRoleMaster,
 	})
 	if err != nil {
@@ -122,47 +122,47 @@ func createCalicoNode(daemonSetBytes, configBytes []byte, client clientset.Inter
 	return apiclient.CreateOrUpdateDaemonSet(client, daemonSet)
 }
 
-func createKubeControllers(daemonSetBytes []byte, client clientset.Interface) error {
+func createKubeControllers(deploymentBytes []byte, client clientset.Interface) error {
 
 	//PHASE 1: create RBAC rules
 	clusterRoles := &rbac.ClusterRole{}
 	if err := kuberuntime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(CalicoControllersClusterRole), clusterRoles); err != nil {
-		return fmt.Errorf("unable to decode calico kube controllers clusterroles %v", err)
+		return fmt.Errorf("unable to decode kube controllers clusterroles %v", err)
 	}
 
-	// Create the ClusterRoles for Calico kube controllers or update it in case it already exists
+	// Create the ClusterRoles for kube controllers or update it in case it already exists
 	if err := apiclient.CreateOrUpdateClusterRole(client, clusterRoles); err != nil {
 		return err
 	}
 
 	clusterRolesBinding := &rbac.ClusterRoleBinding{}
 	if err := kuberuntime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(CalicoControllersClusterRoleBinding), clusterRolesBinding); err != nil {
-		return fmt.Errorf("unable to decode calico kube controllers clusterrolebindings %v", err)
+		return fmt.Errorf("unable to decode kube controllers clusterrolebindings %v", err)
 	}
 
-	// Create the ClusterRoleBindings for Calico kube controllers or update it in case it already exists
+	// Create the ClusterRoleBindings for kube controllers or update it in case it already exists
 	if err := apiclient.CreateOrUpdateClusterRoleBinding(client, clusterRolesBinding); err != nil {
 		return err
 	}
 
 	serviceAccount := &v1.ServiceAccount{}
 	if err := kuberuntime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(CalicoControllersServiceAccount), serviceAccount); err != nil {
-		return fmt.Errorf("unable to decode calico kube controllers serviceAccount %v", err)
+		return fmt.Errorf("unable to decode kube controllers serviceAccount %v", err)
 	}
 
-	// Create the ConfigMap for CoreDNS or update it in case it already exists
+	// Create the ServiceAccount for kube controller or update it in case it already exists
 	if err := apiclient.CreateOrUpdateServiceAccount(client, serviceAccount); err != nil {
 		return err
 	}
 
-	//PHASE 2: create calico daemonSet
-	daemonSet := &apps.DaemonSet{}
-	if err := kuberuntime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), daemonSetBytes, daemonSet); err != nil {
-		return fmt.Errorf("unable to decode calico kube controllers daemonset %v", err)
+	//PHASE 2: create kube controller deployment
+	deployment := &apps.Deployment{}
+	if err := kuberuntime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), deploymentBytes, deployment); err != nil {
+		return fmt.Errorf("unable to decode kube controllers daemonset %v", err)
 	}
 
 	// Create the DaemonSet for calico kube controllers or update it in case it already exists
-	return apiclient.CreateOrUpdateDaemonSet(client, daemonSet)
+	return apiclient.CreateOrUpdateDeployment(client, deployment)
 }
 
 func createCalicoCtl(JobBytes, configMapBytes []byte, client clientset.Interface) error {

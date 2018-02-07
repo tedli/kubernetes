@@ -953,7 +953,7 @@ func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.NodeConfigura
 		SystemVerificationCheck{CRISocket: criSocket},
 		IsPrivilegedUserCheck{},
 		HostnameCheck{cfg.NodeName},
-		KubeletVersionCheck{},
+		//KubeletVersionCheck{},
 		//ServiceCheck{Service: "kubelet", CheckIfActive: false},
 		PortOpenCheck{port: 10250},
 		DirAvailableCheck{Path: filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)},

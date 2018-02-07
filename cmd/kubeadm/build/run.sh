@@ -193,6 +193,11 @@ EOF
     PostToServer="--server ${SERVER_URL}  --server-credential ${CREDENTIAL}"
   fi
 
+  local network_plugin_parameter=""
+  if [ -n "${NETWORK}" ]; then
+    network_plugin_parameter="--network-plugin ${NETWORK}"
+  fi
+
   cat <<EOF
 #!/bin/bash
 $(welcome)
@@ -203,7 +208,7 @@ Clean
 ${PullImage}
 PullImage ${REGISTRY_SERVER} ${REGISTRY_USER}  "master"
 result=0
-/tmp/kubeadm init  ${pod_cidr_parameter} ${service_cidr_parameter} ${service_dns_domain_parameter}  ${apiserver_cert_extra_sans_parameter}   ${ADVERTISE_ADDRESSES} --kubernetes-version ${K8S_VERSION}  --token-ttl 0  ${PostToServer} --image-repository ${REGISTRY_SERVER}/${REGISTRY_USER}
+/tmp/kubeadm init  ${network_plugin_parameter}  ${pod_cidr_parameter} ${service_cidr_parameter} ${service_dns_domain_parameter}  ${apiserver_cert_extra_sans_parameter}   ${ADVERTISE_ADDRESSES} --kubernetes-version ${K8S_VERSION}  --token-ttl 0  ${PostToServer} --image-repository ${REGISTRY_SERVER}/${REGISTRY_USER}
 result=\$?
 rm -rf $(which kubeadm)
 mv /tmp/kubeadm /usr/bin/  >/dev/null

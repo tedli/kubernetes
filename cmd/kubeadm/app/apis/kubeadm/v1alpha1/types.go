@@ -97,6 +97,7 @@ type Networking struct {
 	ServiceSubnet string `json:"serviceSubnet"`
 	PodSubnet     string `json:"podSubnet"`
 	DNSDomain     string `json:"dnsDomain"`
+	Plugin        string `json:"plugin"`
 }
 
 // Etcd contains elements describing Etcd configuration
@@ -158,7 +159,7 @@ type NodeConfiguration struct {
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 
 	// ImageRepository what container registry to pull control plane images from
-	ImageRepository      string `json:"imageRepository"`
+	ImageRepository      string               `json:"imageRepository"`
 
 	Networking           Networking           `json:"networking"`
 

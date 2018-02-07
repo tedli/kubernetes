@@ -26,6 +26,7 @@ metadata:
   namespace: kube-system
   labels:
     k8s-app: kube-dns
+    plugin: kube-dns
 spec:
   # replicas: not specified here:
   # 1. In order to make Addon Manager do not reconcile this replicas parameter.
