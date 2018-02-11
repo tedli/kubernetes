@@ -46,7 +46,7 @@ data:
         "etcd_key_file": "__ETCD_KEY_FILE__",
         "etcd_cert_file": "__ETCD_CERT_FILE__",
         "etcd_ca_cert_file": "__ETCD_CA_CERT_FILE__",
-        "log_level": "info",
+        "log_level": "__LOG_LEVEL__",
         "mtu": 1500,
         "ipam": {
             "type": "calico-ipam"
@@ -184,17 +184,17 @@ spec:
                 configMapKeyRef:
                   name: calico-config
                   key: etcd_endpoints
-            - name: ETCD_CERT_FILE
+            - name: CNI_CONF_ETCD_CERT
               valueFrom:
                 configMapKeyRef:
                   name: calico-config
                   key: etcd_cert
-            - name: ETCD_KEY_FILE
+            - name: CNI_CONF_ETCD_KEY
               valueFrom:
                 configMapKeyRef:
                   name: calico-config
                   key: etcd_key
-            - name: ETCD_CA_CERT_FILE
+            - name: CNI_CONF_ETCD_CA
               valueFrom:
                 configMapKeyRef:
                   name: calico-config

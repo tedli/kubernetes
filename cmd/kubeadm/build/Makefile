@@ -9,7 +9,7 @@ godep-build: clean
 	GOPATH=$(GOPATH):$(shell cd ../../;pwd);CGO_ENABLED=0 godep go build
 
 compress:
-	docker run --rm -v  $(shell pwd):/src/  -w /src index.tenxcloud.com/tenx_containers/goupx:latest goupx $(shell basename $(shell pwd))
+	docker run --rm -v  $(shell pwd):/src/  -w /src index.tenxcloud.com/tenx_containers/goupx:latest goupx kubeadm
 
 save:
 	GOPATH=$(GOPATH):$(shell cd ../../;pwd);go get;godep save
@@ -19,7 +19,7 @@ docker-build: clean
 	-w /go/src/$(shell basename $(shell pwd)) index.tenxcloud.com/tenx_containers/godep:alpine  	\
 	/bin/sh -c "CGO_ENABLED=0 godep go build -gcflags \"-N -l\""
 
-tde:
+tde: compress
 	docker build -t 192.168.1.55/tenx_containers/tde:${Version}  .
 
 build-tde: godep-build compress

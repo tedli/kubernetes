@@ -47,11 +47,11 @@ data:
                 "type": "flannel",
                 "delegate": {
                     "type": "calico",
-                    "etcd_endpoints": "https://kubernetes.default.svc.cluster.local:2379",
-                    "etcd_key_file": "/etc/kubernetes/pki/client.key",
-                    "etcd_cert_file": "/etc/kubernetes/pki/client.crt",
-                    "etcd_ca_cert_file": "/etc/kubernetes/pki/ca.crt",
-                    "log_level": "info",
+                    "etcd_endpoints": "__ETCD_ENDPOINTS__",
+                    "etcd_key_file": "__ETCD_KEY_FILE__",
+                    "etcd_cert_file": "__ETCD_CERT_FILE__",
+                    "etcd_ca_cert_file": "__ETCD_CA_CERT_FILE__",
+                    "log_level": "__LOG_LEVEL__",
                     "policy": {
                         "type": "k8s"
                     },
@@ -264,17 +264,17 @@ spec:
                 configMapKeyRef:
                   name: canal-config
                   key: etcd_endpoints
-            - name: ETCD_CA_CERT_FILE
+            - name: CNI_CONF_ETCD_CA
               valueFrom:
                 configMapKeyRef:
                   name: canal-config
                   key: etcd_ca
-            - name: ETCD_KEY_FILE
+            - name: CNI_CONF_ETCD_KEY
               valueFrom:
                 configMapKeyRef:
                   name: canal-config
                   key: etcd_key
-            - name: ETCD_CERT_FILE
+            - name: CNI_CONF_ETCD_CERT
               valueFrom:
                 configMapKeyRef:
                   name: canal-config
