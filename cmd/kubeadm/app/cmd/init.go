@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	rt "runtime"
 	"text/template"
 	"time"
 
@@ -214,6 +215,11 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 	flagSet.StringVar(
 		&cfg.ImageRepository, "image-repository", cfg.ImageRepository, `Set the private image repository`,
 	)
+	unifiedControlPlaneImage := fmt.Sprintf("%s/hyperkube-%s:%s",cfg.ImageRepository,rt.GOARCH,cfg.KubernetesVersion)
+	flagSet.StringVar(
+		&cfg.UnifiedControlPlaneImage, "unified-controlplane-image", unifiedControlPlaneImage, `Set the unified control plane image`,
+	)
+
 }
 
 // AddInitOtherFlags adds init flags that are not bound to a configuration file to the given flagset
