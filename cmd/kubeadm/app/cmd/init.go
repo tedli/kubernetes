@@ -66,23 +66,19 @@ import (
 )
 
 var (
-	initDoneTempl = template.Must(template.New("init").Parse(dedent.Dedent(`
-		Your Kubernetes master has initialized successfully!
+	initTipsTempl = template.Must(template.New("init").Parse(dedent.Dedent(`
+	Your Kubernetes master has initialized successfully!
 
-		To start using your cluster, you need to run the following as a regular user:
+	To start using your cluster:
+	you can now join number of control plane nodes by running the following on master node
+	as root:
 
-		  mkdir -p $HOME/.kube
-		  sudo cp -i {{.KubeConfigPath}} $HOME/.kube/config
-		  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+	sudo bash -c "$(docker run --rm -v /tmp:/tmp {{.ImageRepository}}/tde:v3.0.0 --registry {{.ImageRepositoryHost}} --token {{.Token}} --ca-cert-hash {{.CAPubKeyPin}} --ha-peer {{.MasterHost}} Init)"
 
-		You should now deploy a pod network to the cluster.
-		Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
-		  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+	or you can now join any number of kubernetes workers by running the following on slave node
+	as root:
 
-		You can now join any number of machines by running the following on each node
-		as root:
-
-		  kubeadm join --token {{.Token}} {{.MasterHostPort}} --discovery-token-ca-cert-hash {{.CAPubKeyPin}}
+	sudo bash -c "$(docker run --rm -v /tmp:/tmp {{.ImageRepository}}/tde:v3.0.0 --registry {{.ImageRepositoryHost}} --token {{.Token}} --ca-cert-hash {{.CAPubKeyPin}} Join {{.MasterHost}})"
 
 		`)))
 
@@ -493,24 +489,25 @@ func (i *Init) Run(out io.Writer) error {
 	//if err != nil {
 	//	return fmt.Errorf("error loading ca cert from disk: %v", err)
 	//}
-	//
-	//// Generate the Master host/port pair used by initDoneTempl
-	//masterHostPort, err := kubeadmutil.GetMasterHostPort(i.cfg)
-	//if err != nil {
-	//	return fmt.Errorf("error getting master host port: %v", err)
-	//}
-	//
-	//ctx := map[string]string{
-	//	"KubeConfigPath": adminKubeConfigPath,
-	//	"Token":          i.cfg.Token,
-	//	"CAPubKeyPin":    pubkeypin.Hash(caCert),
-	//	"MasterHostPort": masterHostPort,
-	//}
-	//if i.skipTokenPrint {
-	//	ctx["Token"] = "<value withheld>"
-	//}
-	//
-	//return initDoneTempl.Execute(out, ctx)
+	imageRepositoryHost,err := kubeadmutil.GetImageRepositoryHost(i.cfg)
+	if err != nil {
+		return fmt.Errorf("error Get Image Repository Host : %v", err)
+	}
+
+	ctx := map[string]string{
+		"ImageRepository"    : i.cfg.ImageRepository,
+		"ImageRepositoryHost": imageRepositoryHost,
+		"Token"              : i.cfg.Token,
+		"CAPubKeyPin"        : pubkeypin.Hash(caCert),
+		"MasterHost"         : i.cfg.API.AdvertiseAddress,
+	}
+	if i.skipTokenPrint {
+		ctx["Token"] = "<value withheld>"
+	}
+
+	if i.cfg.ApiServerUrl == "" || i.cfg.ApiServerCredential == "" {
+		return initTipsTempl.Execute(out, ctx)
+	}
 	return nil
 }
 
