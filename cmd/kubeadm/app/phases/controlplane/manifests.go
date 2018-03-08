@@ -237,7 +237,7 @@ func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration, k8sVersion
 		"concurrent-replicaset-syncs":      "20",
 		"pod-eviction-timeout":             "60s",
 		"horizontal-pod-autoscaler-sync-period": "10s",
-		"feature-gates":                    "RotateKubeletServerCertificate=true",
+		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true",
 	}
 
 	// If using external CA, pass empty string to controller manager instead of ca.key/ca.crt path,
