@@ -68,7 +68,7 @@ spec:
           path: /etc/resolv.conf
         name: resolv
       - hostPath:
-          path: /tenxcloud/agent_check/
+          path: /paas/agent_check/
         name: checklog
 `
 
