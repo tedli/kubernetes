@@ -47,7 +47,8 @@ func CreateCalicoAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Int
 		return err
 	}
 	//PHASE 3: create calico ctl job to configure ip pool
-	ctlConfigMapBytes, err := kubeadmutil.ParseTemplate(CtlConfigMap, struct{ PodSubnet string }{
+	ctlConfigMapBytes, err := kubeadmutil.ParseTemplate(CtlConfigMap, struct{ ServiceSubnet,PodSubnet string }{
+		ServiceSubnet: cfg.Networking.ServiceSubnet,
 		PodSubnet: cfg.Networking.PodSubnet,
 	})
 	if err != nil {

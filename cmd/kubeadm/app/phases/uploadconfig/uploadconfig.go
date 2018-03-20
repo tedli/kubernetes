@@ -42,6 +42,9 @@ func UploadConfiguration(cfg *kubeadmapi.MasterConfiguration, client clientset.I
 
 	// Removes sensitive info from the data that will be stored in the config map
 	externalcfg.Token = ""
+	externalcfg.Networking.ServiceSubnet = cfg.Networking.ServiceSubnet
+	externalcfg.Networking.PodSubnet = cfg.Networking.PodSubnet
+	externalcfg.KubeProxy.Config.ClusterCIDR = cfg.Networking.PodSubnet
 
 	cfgYaml, err := yaml.Marshal(*externalcfg)
 	if err != nil {
