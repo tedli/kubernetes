@@ -327,6 +327,8 @@ kind: ConfigMap
 metadata:
   name: ippool
   namespace: kube-system
+  annotations:
+    networking.kubernetes.io/service-cidr: {{ .ServiceSubnet }}
 data:
   ippool.yaml: |-
     apiVersion: v1
@@ -334,6 +336,9 @@ data:
     metadata:
       cidr: {{ .PodSubnet }}
     spec:
+      ipip:
+        enabled: false
+        mode: cross-subnet
       nat-outgoing: true
 `
 
