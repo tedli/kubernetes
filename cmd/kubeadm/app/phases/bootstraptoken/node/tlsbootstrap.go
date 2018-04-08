@@ -172,12 +172,17 @@ func AllowUserGroupKubernetesIn(client clientset.Interface) error {
 	if err != nil {
 		return err
 	}
+	bootstrappers := rbac.Subject{
+		APIGroup: rbac.GroupName,
+		Kind:     "Group",
+		Name:     constants.NodeBootstrapTokenAuthGroup,
+	}
 	kubernetes := rbac.Subject{
 		APIGroup: rbac.GroupName,
 		Kind:     "Group",
 		Name:     "kubernetes",
 	}
-	clusterAdminBinding.Subjects = append(clusterAdminBinding.Subjects, kubernetes)
+	clusterAdminBinding.Subjects = append(clusterAdminBinding.Subjects,bootstrappers, kubernetes)
 	_, err = client.RbacV1().ClusterRoleBindings().Update(clusterAdminBinding)
 	if err != nil {
 		return err
