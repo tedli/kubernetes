@@ -7,25 +7,11 @@ ${REGISTRY_SERVER}/${REGISTRY_USER}/kubectl-amd64:${K8S_VERSION}
 ${REGISTRY_SERVER}/${REGISTRY_USER}/tde:v3.0.0
 ```
 
-## hyperkube (Deprecated from kubernetes v1.9.x)
-
-注意${REGISTRY_SERVER}/${REGISTRY_USER}/hyperkube:${K8S_VERSION}镜像
-是在gcr.io/google_containers/hyperkube:${VERSION}基础上加入calico cni插件
-```
-/opt/cni/bin/calico
-/opt/cni/bin/calico-ipam
-```
-具体参考http://gitlab.tenxcloud.com/enterprise-2.0/contrib/tree/dev-branch/Images/hyperkube/debian
+## hyperkube
 
 特别需要注意的地方是${REGISTRY_SERVER}/${REGISTRY_USER}/hyperkube:${K8S_VERSION}的tag要和
 gcr.io/google_containers/hyperkube:${VERSION}的tag保持一致
 
-```
-cherry-pick commit
-
-https://github.com/kubernetes/kubernetes/pull/45805
-https://github.com/google/cadvisor/pull/1642
-```
 
 请使用root用户编译hyperkube
 ```
@@ -33,7 +19,7 @@ root@k8s:~# git clone http://gitlab.tenxcloud.com/enterprise-2.0/contrib -b dev-
 root@k8s:~# git clone git@gitlab.tenxcloud.com:kubernetes/kubernetes.git -b release-1.6.11
 root@k8s:~# cd ${KUBE_ROOT}
 
-root@k8s:~# 修改hack/lib/version.sh中52行代码如下
+root@k8s:~# 修改hack/lib/version.sh中66行代码如下
             if [[ -n ${KUBE_GIT_VERSION-} ]] || KUBE_GIT_VERSION=$("${git[@]}" describe --tags --abbrev=0 "${KUBE_GIT_COMMIT}^{commit}" 2>/dev/null); then
             
 root@k8s:~# make clean && make all WHAT=cmd/hyperkube GOFLAGS=-v
@@ -59,7 +45,7 @@ https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md#external-depen
 http://wiki.tenxcloud.com/pages/viewpage.action?pageId=9077545
 
 ## agent
-hyperkube >=v1.6时agent版本要求使用agent >=2.6
+hyperkube >=v1.9时agent版本要求使用agent >=3.0
 
 
 ## calico 
