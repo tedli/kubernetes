@@ -455,6 +455,10 @@ func (i *Init) Run(out io.Writer) error {
 		if err := clusterinfophase.CreateClusterInfoRBACRules(client); err != nil {
 			return fmt.Errorf("error creating clusterinfo RBAC rules: %v", err)
 		}
+		//CreateConfigMapIfForScheduler creates the kube-scheduler ConfigMap
+		if err := controlplanephase.CreateConfigMapForKubeScheduler(client); err != nil {
+			return fmt.Errorf("error creating kube-scheduler ConfigMap in kube-system: %v", err)
+		}
 
 		// PHASE 6:  Deploy AddOns
 		if err := addons.DeployAddons(i.cfg, client); err != nil {

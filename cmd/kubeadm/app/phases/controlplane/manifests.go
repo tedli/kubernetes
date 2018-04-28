@@ -280,6 +280,8 @@ func getSchedulerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 	defaultArguments := map[string]string{
 		"address":      "127.0.0.1",
 		"leader-elect": "true",
+		"policy-configmap": "kube-scheduler",
+		"policy-configmap-namespace":"kube-system",
 		"kubeconfig":   filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.SchedulerKubeConfigFileName),
 	}
 
