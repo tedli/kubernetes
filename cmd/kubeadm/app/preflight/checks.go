@@ -844,9 +844,10 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 	}
 
 	// check if we can use crictl to perform checks via the CRI
-	criCtlChecker := InPathCheck{executable: "crictl", mandatory: false, exec: execer}
-	warns, _ := criCtlChecker.Check()
-	useCRI := len(warns) == 0
+	//criCtlChecker := InPathCheck{executable: "crictl", mandatory: false, exec: execer}
+	//warns, _ := criCtlChecker.Check()
+	//useCRI := len(warns) == 0
+	useCRI := false
 
 	manifestsDir := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)
 
@@ -877,7 +878,7 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 		//InPathCheck{executable: "socat", mandatory: false, exec: execer},
 		InPathCheck{executable: "tc", mandatory: false, exec: execer},
 		InPathCheck{executable: "touch", mandatory: false, exec: execer},
-		criCtlChecker,
+		//criCtlChecker,
 		ExtraArgsCheck{
 			APIServerExtraArgs:         cfg.APIServerExtraArgs,
 			ControllerManagerExtraArgs: cfg.ControllerManagerExtraArgs,
