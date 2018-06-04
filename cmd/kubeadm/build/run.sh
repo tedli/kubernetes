@@ -2,7 +2,7 @@
 REGISTRY_SERVER="index.tenxcloud.com"
 REGISTRY_USER="tenx_containers"
 AGENT_VERSION="v3.0.0"
-K8S_VERSION="v1.9.2"
+K8S_VERSION="v1.9.8"
 ETCD_VERSION="3.1.11"
 CALICO_VERSION="v1.6.3"
 ROLE="node"
