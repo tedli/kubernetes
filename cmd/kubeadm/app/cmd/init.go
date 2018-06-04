@@ -17,12 +17,15 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	rt "runtime"
 	"text/template"
 	"time"
 
@@ -39,12 +42,11 @@ import (
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
-	dnsaddonphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/dns"
-	proxyaddonphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/proxy"
+	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons"
 	clusterinfophase "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/clusterinfo"
 	nodebootstraptokenphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/node"
 	certsphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
-	"k8s.io/kubernetes/cmd/kubeadm/app/phases/certs/pkiutil"
+	//"k8s.io/kubernetes/cmd/kubeadm/app/phases/certs/pkiutil"
 	controlplanephase "k8s.io/kubernetes/cmd/kubeadm/app/phases/controlplane"
 	etcdphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd"
 	kubeconfigphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubeconfig"
@@ -64,23 +66,19 @@ import (
 )
 
 var (
-	initDoneTempl = template.Must(template.New("init").Parse(dedent.Dedent(`
-		Your Kubernetes master has initialized successfully!
+	initTipsTempl = template.Must(template.New("init").Parse(dedent.Dedent(`
+	Your Kubernetes master has initialized successfully!
 
-		To start using your cluster, you need to run the following as a regular user:
+	To start using your cluster:
+	you can now join number of control plane nodes by running the following on master node
+	as root:
 
-		  mkdir -p $HOME/.kube
-		  sudo cp -i {{.KubeConfigPath}} $HOME/.kube/config
-		  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+	sudo bash -c "$(docker run --rm -v /tmp:/tmp {{.ImageRepository}}/tde:v3.0.0 --registry {{.ImageRepositoryHost}} --token {{.Token}} --ca-cert-hash {{.CAPubKeyPin}} --ha-peer {{.MasterHost}} Init)"
 
-		You should now deploy a pod network to the cluster.
-		Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
-		  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+	or you can now join any number of kubernetes workers by running the following on slave node
+	as root:
 
-		You can now join any number of machines by running the following on each node
-		as root:
-
-		  kubeadm join --token {{.Token}} {{.MasterHostPort}} --discovery-token-ca-cert-hash {{.CAPubKeyPin}}
+	sudo bash -c "$(docker run --rm -v /tmp:/tmp {{.ImageRepository}}/tde:v3.0.0 --registry {{.ImageRepositoryHost}} --token {{.Token}} --ca-cert-hash {{.CAPubKeyPin}} Join {{.MasterHost}})"
 
 		`)))
 
@@ -164,8 +162,13 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 	)
 	flagSet.StringVar(
 		&cfg.Networking.DNSDomain, "service-dns-domain", cfg.Networking.DNSDomain,
-		`Use alternative domain for services, e.g. "myorg.internal".`,
+		`Use alternative domain for services, e.g. "cluster.local".`,
 	)
+	flagSet.StringVar(
+		&cfg.Networking.Plugin, "network-plugin", cfg.Networking.Plugin,
+		`Use alternative network plugin, e.g. "calico","flannel","canal","macvlan".`,
+	)
+
 	flagSet.StringVar(
 		&cfg.KubernetesVersion, "kubernetes-version", cfg.KubernetesVersion,
 		`Choose a specific Kubernetes version for the control plane.`,
@@ -191,7 +194,23 @@ func AddInitConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.MasterConfigur
 		"The duration before the bootstrap token is automatically deleted. If set to '0', the token will never expire.",
 	)
 	flagSet.StringVar(featureGatesString, "feature-gates", *featureGatesString, "A set of key=value pairs that describe feature gates for various features. "+
-		"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+		"Options are:\n"+ strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+	flagSet.StringVar(
+		&cfg.HighAvailabilityPeer, "ha-peer", "",
+		"The master will be a member of High Availability master group, if it is empty, it will be a fresh master.",
+	)
+	flagSet.StringSliceVar(
+		&cfg.DiscoveryTokenCACertHashes, "discovery-token-ca-cert-hash", []string{},
+		"For token-based discovery, validate that the root CA public key matches this hash (format: \"<type>:<value>\").")
+	flagSet.StringVar(
+		&cfg.ApiServerUrl, "server", "", `TenxCloud Enterprise Server Address`,
+	)
+	flagSet.StringVar(
+		&cfg.ApiServerCredential, "server-credential", "", `Credential to access TenxCloud Enterprise Server`,
+	)
+	flagSet.StringVar(
+		&cfg.ImageRepository, "image-repository", cfg.ImageRepository, `Set the private image repository`,
+	)
 }
 
 // AddInitOtherFlags adds init flags that are not bound to a configuration file to the given flagset
@@ -265,7 +284,7 @@ func NewInit(cfgPath string, cfg *kubeadmapi.MasterConfiguration, ignorePrefligh
 	}
 
 	// Try to start the kubelet service in case it's inactive
-	preflight.TryStartKubelet(ignorePreflightErrors)
+	//preflight.TryStartKubelet(ignorePreflightErrors)
 
 	return &Init{cfg: cfg, skipTokenPrint: skipTokenPrint, dryRun: dryRun}, nil
 }
@@ -287,6 +306,7 @@ func (i *Init) Validate(cmd *cobra.Command) error {
 
 // Run executes master node provisioning, including certificates, needed static pod manifests, etc.
 func (i *Init) Run(out io.Writer) error {
+	i.cfg.UnifiedControlPlaneImage = fmt.Sprintf("%s/hyperkube-%s:%s",i.cfg.ImageRepository,rt.GOARCH,i.cfg.KubernetesVersion)
 	// Get directories to write files to; can be faked if we're dry-running
 	realCertsDir := i.cfg.CertificatesDir
 	certsDirToWriteTo, kubeConfigDir, manifestDir, err := getDirectoriesToUse(i.dryRun, i.cfg.CertificatesDir)
@@ -298,25 +318,35 @@ func (i *Init) Run(out io.Writer) error {
 
 	adminKubeConfigPath := filepath.Join(kubeConfigDir, kubeadmconstants.AdminKubeConfigFileName)
 
+	// PHASE 1: Generate certificates and generate kubeconfig files
+	var caKey, saKey *rsa.PrivateKey
+	var caCert *x509.Certificate
 	if res, _ := certsphase.UsingExternalCA(i.cfg); !res {
-
-		// PHASE 1: Generate certificates
-		if err := certsphase.CreatePKIAssets(i.cfg); err != nil {
+		caCert, caKey, saKey, err = certsphase.CreatePKIAssets(i.cfg)
+		if err != nil {
 			return err
 		}
-
-		// PHASE 2: Generate kubeconfig files for the admin and the kubelet
 		if err := kubeconfigphase.CreateInitKubeConfigFiles(kubeConfigDir, i.cfg); err != nil {
 			return err
 		}
-
 	} else {
 		fmt.Println("[externalca] The file 'ca.key' was not found, yet all other certificates are present. Using external CA mode - certificates or kubeconfig will not be generated.")
+	}
+
+	err = controlplanephase.CreateTokenAuthFile(i.cfg.Token)
+	if err != nil {
+		return err
 	}
 
 	// Temporarily set cfg.CertificatesDir to the "real value" when writing controlplane manifests
 	// This is needed for writing the right kind of manifests
 	i.cfg.CertificatesDir = realCertsDir
+
+	// PHASE 2: Install Kubelet
+	err = kubeletphase.TryInstallKubelet(i.cfg.Networking.ServiceSubnet, i.cfg.Networking.DNSDomain, i.cfg.ImageRepository, i.cfg.KubernetesVersion)
+	if err != nil {
+		return err
+	}
 
 	// PHASE 3: Bootstrap the control plane
 	if err := controlplanephase.CreateInitStaticPodManifestFiles(manifestDir, i.cfg); err != nil {
@@ -378,8 +408,10 @@ func (i *Init) Run(out io.Writer) error {
 	// Upload currently used configuration to the cluster
 	// Note: This is done right in the beginning of cluster initialization; as we might want to make other phases
 	// depend on centralized information from this source in the future
-	if err := uploadconfigphase.UploadConfiguration(i.cfg, client); err != nil {
-		return fmt.Errorf("error uploading configuration: %v", err)
+	if i.cfg.HighAvailabilityPeer == "" {
+		if err := uploadconfigphase.UploadConfiguration(i.cfg, client); err != nil {
+			return fmt.Errorf("error uploading configuration: %v", err)
+		}
 	}
 
 	// PHASE 4: Mark the master with the right label/taint
@@ -390,41 +422,54 @@ func (i *Init) Run(out io.Writer) error {
 	// PHASE 5: Set up the node bootstrap tokens
 	if !i.skipTokenPrint {
 		fmt.Printf("[bootstraptoken] Using token: %s\n", i.cfg.Token)
+		fmt.Printf("[bootstraptoken] Using CAPubKeyPin: %s\n", pubkeypin.Hash(caCert))
 	}
+	if i.cfg.HighAvailabilityPeer == "" {
+		// Create the default node bootstrap token
+		tokenDescription := "The default bootstrap token generated by 'kubeadm init'."
+		if err := nodebootstraptokenphase.UpdateOrCreateToken(client, i.cfg.Token, false, i.cfg.TokenTTL.Duration, kubeadmconstants.DefaultTokenUsages, []string{kubeadmconstants.NodeBootstrapTokenAuthGroup}, tokenDescription); err != nil {
+			return fmt.Errorf("error updating or creating token: %v", err)
+		}
+		// Create RBAC rules that makes the bootstrap tokens able to post CSRs
+		if err := nodebootstraptokenphase.AllowBootstrapTokensToPostCSRs(client); err != nil {
+			return fmt.Errorf("error allowing bootstrap tokens to post CSRs: %v", err)
+		}
+		// Create RBAC rules that makes the bootstrap tokens able to get their CSRs approved automatically
+		if err := nodebootstraptokenphase.AutoApproveNodeBootstrapTokens(client); err != nil {
+			return fmt.Errorf("error auto-approving node bootstrap tokens: %v", err)
+		}
 
-	// Create the default node bootstrap token
-	tokenDescription := "The default bootstrap token generated by 'kubeadm init'."
-	if err := nodebootstraptokenphase.UpdateOrCreateToken(client, i.cfg.Token, false, i.cfg.TokenTTL.Duration, kubeadmconstants.DefaultTokenUsages, []string{kubeadmconstants.NodeBootstrapTokenAuthGroup}, tokenDescription); err != nil {
-		return fmt.Errorf("error updating or creating token: %v", err)
-	}
-	// Create RBAC rules that makes the bootstrap tokens able to post CSRs
-	if err := nodebootstraptokenphase.AllowBootstrapTokensToPostCSRs(client); err != nil {
-		return fmt.Errorf("error allowing bootstrap tokens to post CSRs: %v", err)
-	}
-	// Create RBAC rules that makes the bootstrap tokens able to get their CSRs approved automatically
-	if err := nodebootstraptokenphase.AutoApproveNodeBootstrapTokens(client); err != nil {
-		return fmt.Errorf("error auto-approving node bootstrap tokens: %v", err)
-	}
+		// Create/update RBAC rules that makes the nodes to rotate certificates and get their CSRs approved automatically
+		if err := nodebootstraptokenphase.AutoApproveNodeCertificateRotation(client); err != nil {
+			return err
+		}
 
-	// Create/update RBAC rules that makes the nodes to rotate certificates and get their CSRs approved automatically
-	if err := nodebootstraptokenphase.AutoApproveNodeCertificateRotation(client); err != nil {
-		return err
-	}
+		if err := nodebootstraptokenphase.AllowUserGroupKubernetesIn(client); err != nil {
+			return err
+		}
 
-	// Create the cluster-info ConfigMap with the associated RBAC rules
-	if err := clusterinfophase.CreateBootstrapConfigMapIfNotExists(client, adminKubeConfigPath); err != nil {
-		return fmt.Errorf("error creating bootstrap configmap: %v", err)
-	}
-	if err := clusterinfophase.CreateClusterInfoRBACRules(client); err != nil {
-		return fmt.Errorf("error creating clusterinfo RBAC rules: %v", err)
-	}
+		// Create the cluster-info ConfigMap with the associated RBAC rules
+		if err := clusterinfophase.CreateBootstrapConfigMapIfNotExists(client, adminKubeConfigPath, i.cfg.Networking.DNSDomain, caCert, caKey, saKey); err != nil {
+			return fmt.Errorf("error creating bootstrap configmap: %v", err)
+		}
+		if err := clusterinfophase.CreateClusterInfoRBACRules(client); err != nil {
+			return fmt.Errorf("error creating clusterinfo RBAC rules: %v", err)
+		}
+		//CreateConfigMapIfForScheduler creates the kube-scheduler ConfigMap
+		if err := controlplanephase.CreateConfigMapForKubeScheduler(client); err != nil {
+			return fmt.Errorf("error creating kube-scheduler ConfigMap in kube-system: %v", err)
+		}
 
-	if err := dnsaddonphase.EnsureDNSAddon(i.cfg, client); err != nil {
-		return fmt.Errorf("error ensuring dns addon: %v", err)
-	}
+		// PHASE 6:  Deploy AddOns
+		if err := addons.DeployAddons(i.cfg, client); err != nil {
+			return fmt.Errorf("error ensuring dns addon: %v", err)
+		}
 
-	if err := proxyaddonphase.EnsureProxyAddon(i.cfg, client); err != nil {
-		return fmt.Errorf("error ensuring proxy addon: %v", err)
+		if i.cfg.ApiServerUrl != "" && i.cfg.ApiServerCredential != "" {
+			if err := controlplanephase.CallBack(i.cfg.ApiServerCredential, i.cfg.ApiServerUrl, i.cfg.Token, i.cfg.API.AdvertiseAddress); err != nil {
+				return err
+			}
+		}
 	}
 
 	// PHASE 7: Make the control plane self-hosted if feature gate is enabled
@@ -443,29 +488,31 @@ func (i *Init) Run(out io.Writer) error {
 		return nil
 	}
 
-	// Load the CA certificate from so we can pin its public key
-	caCert, err := pkiutil.TryLoadCertFromDisk(i.cfg.CertificatesDir, kubeadmconstants.CACertAndKeyBaseName)
+	//// Load the CA certificate from so we can pin its public key
+	//caCert, err = pkiutil.TryLoadCertFromDisk(i.cfg.CertificatesDir, kubeadmconstants.CACertAndKeyBaseName)
+	//if err != nil {
+	//	return fmt.Errorf("error loading ca cert from disk: %v", err)
+	//}
+	imageRepositoryHost,err := kubeadmutil.GetImageRepositoryHost(i.cfg)
 	if err != nil {
-		return fmt.Errorf("error loading ca cert from disk: %v", err)
-	}
-
-	// Generate the Master host/port pair used by initDoneTempl
-	masterHostPort, err := kubeadmutil.GetMasterHostPort(i.cfg)
-	if err != nil {
-		return fmt.Errorf("error getting master host port: %v", err)
+		return fmt.Errorf("error Get Image Repository Host : %v", err)
 	}
 
 	ctx := map[string]string{
-		"KubeConfigPath": adminKubeConfigPath,
-		"Token":          i.cfg.Token,
-		"CAPubKeyPin":    pubkeypin.Hash(caCert),
-		"MasterHostPort": masterHostPort,
+		"ImageRepository"    : i.cfg.ImageRepository,
+		"ImageRepositoryHost": imageRepositoryHost,
+		"Token"              : i.cfg.Token,
+		"CAPubKeyPin"        : pubkeypin.Hash(caCert),
+		"MasterHost"         : i.cfg.API.AdvertiseAddress,
 	}
 	if i.skipTokenPrint {
 		ctx["Token"] = "<value withheld>"
 	}
 
-	return initDoneTempl.Execute(out, ctx)
+	if i.cfg.ApiServerUrl == "" || i.cfg.ApiServerCredential == "" {
+		return initTipsTempl.Execute(out, ctx)
+	}
+	return nil
 }
 
 // createClient creates a clientset.Interface object

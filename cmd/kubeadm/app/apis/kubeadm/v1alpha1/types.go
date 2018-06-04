@@ -62,6 +62,19 @@ type MasterConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+
+	// The master will be a member of High Availability master group, if it is empty, it will be a fresh master
+	HighAvailabilityPeer        string               `json:"highAvailability"`
+
+	//For token-based discovery, validate that the root CA public key matches this hash
+	DiscoveryTokenCACertHashes  []string             `json:"discoveryTokenCACertHashes,omitempty"`
+
+	// TenxCloud Enterprise Server Address
+	ApiServerUrl                string               `json:"apiServerUrl"`
+
+	// Credential to access TenxCloud Enterprise Server
+	ApiServerCredential         string               `json:"apiServerCredential"`
+
 }
 
 // API struct contains elements of API server address.
@@ -84,6 +97,7 @@ type Networking struct {
 	ServiceSubnet string `json:"serviceSubnet"`
 	PodSubnet     string `json:"podSubnet"`
 	DNSDomain     string `json:"dnsDomain"`
+	Plugin        string `json:"plugin"`
 }
 
 // Etcd contains elements describing Etcd configuration
@@ -143,6 +157,13 @@ type NodeConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+
+	// ImageRepository what container registry to pull control plane images from
+	ImageRepository      string               `json:"imageRepository"`
+
+	Networking           Networking           `json:"networking"`
+
+	KubernetesVersion    string               `json:"kubernetesVersion"`
 }
 
 // KubeletConfiguration contains elements describing initial remote configuration of kubelet

@@ -67,6 +67,18 @@ type MasterConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool
+
+	// The master will be a member of High Availability master group, if it is empty, it will be a fresh master
+	HighAvailabilityPeer    string
+
+	//For token-based discovery, validate that the root CA public key matches this hash
+	DiscoveryTokenCACertHashes  []string
+
+	// TenxCloud Enterprise Server Address
+	ApiServerUrl        string
+
+	// Credential to access TenxCloud Enterprise Server
+	ApiServerCredential  string
 }
 
 // API struct contains elements of API server address.
@@ -89,6 +101,7 @@ type Networking struct {
 	ServiceSubnet string
 	PodSubnet     string
 	DNSDomain     string
+	Plugin        string
 }
 
 // Etcd contains elements describing Etcd configuration
@@ -149,6 +162,12 @@ type NodeConfiguration struct {
 
 	// FeatureGates enabled by the user
 	FeatureGates map[string]bool
+
+	ImageRepository      string
+
+	Networking        Networking
+
+	KubernetesVersion string
 }
 
 // KubeletConfiguration contains elements describing initial remote configuration of kubelet

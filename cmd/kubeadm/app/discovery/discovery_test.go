@@ -54,7 +54,7 @@ func TestFor(t *testing.T) {
 		},
 	}
 	for _, rt := range tests {
-		_, actual := For(&rt.d)
+		_, _, actual := For(&rt.d)
 		if (actual == nil) != rt.expect {
 			t.Errorf(
 				"failed For:\n\texpected: %t\n\t  actual: %t",

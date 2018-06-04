@@ -17,9 +17,12 @@ limitations under the License.
 package util
 
 import (
-	"context"
-	"github.com/coreos/etcd/clientv3"
 	"time"
+	"context"
+	"io/ioutil"
+	"crypto/tls"
+	"crypto/x509"
+	"github.com/coreos/etcd/clientv3"
 )
 
 // EtcdCluster is an interface to get etcd cluster related information
@@ -48,4 +51,42 @@ func (cluster LocalEtcdCluster) GetEtcdClusterStatus() (*clientv3.StatusResponse
 	}
 
 	return resp, nil
+}
+
+
+// NewEtcdClient returns an *clientv3.Client with a connection to named machines.
+func NewEtcdClient(endpoints []string, cert, key, caCert string) (*clientv3.Client, error) {
+	var c *clientv3.Client
+	var err error
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: false,
+	}
+	if caCert != "" {
+		certBytes, err := ioutil.ReadFile(caCert)
+		if err != nil {
+			return nil, err
+		}
+		caCertPool := x509.NewCertPool()
+		if caCertPool.AppendCertsFromPEM(certBytes) {
+			tlsConfig.RootCAs = caCertPool
+		}
+	}
+	if cert != "" && key != "" {
+		tlsCert, err := tls.LoadX509KeyPair(cert, key)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{tlsCert}
+	}
+
+	cfg := clientv3.Config{
+		Endpoints:               endpoints,
+		DialTimeout:             3 * time.Second,
+	}
+	cfg.TLS = tlsConfig
+	c, err = clientv3.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }

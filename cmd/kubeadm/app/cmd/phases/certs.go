@@ -132,19 +132,19 @@ func getCertsSubCommands(defaultKubernetesVersion string) []*cobra.Command {
 		examples string
 		cmdFunc  func(cfg *kubeadmapi.MasterConfiguration) error
 	}{
-		{
-			use:      "all",
-			short:    "Generates all PKI assets necessary to establish the control plane",
-			long:     allCertsLongDesc,
-			examples: allCertsExample,
-			cmdFunc:  certsphase.CreatePKIAssets,
-		},
-		{
-			use:     "ca",
-			short:   "Generates self-signed CA to provision identities for each component in the cluster",
-			long:    caCertLongDesc,
-			cmdFunc: certsphase.CreateCACertAndKeyfiles,
-		},
+		//{
+		//	use:      "all",
+		//	short:    "Generates all PKI assets necessary to establish the control plane",
+		//	long:     allCertsLongDesc,
+		//	examples: allCertsExample,
+		//	cmdFunc:  certsphase.CreatePKIAssets,
+		//},
+		//{
+		//	use:     "ca",
+		//	short:   "Generates self-signed CA to provision identities for each component in the cluster",
+		//	long:    caCertLongDesc,
+		//	cmdFunc: certsphase.CreateCACertAndKeyfiles,
+		//},
 		{
 			use:     "apiserver",
 			short:   "Generates API server serving certificate and key",
@@ -157,12 +157,12 @@ func getCertsSubCommands(defaultKubernetesVersion string) []*cobra.Command {
 			long:    apiServerKubeletCertLongDesc,
 			cmdFunc: certsphase.CreateAPIServerKubeletClientCertAndKeyFiles,
 		},
-		{
-			use:     "sa",
-			short:   "Generates a private key for signing service account tokens along with its public key",
-			long:    saKeyLongDesc,
-			cmdFunc: certsphase.CreateServiceAccountKeyAndPublicKeyFiles,
-		},
+		//{
+		//	use:     "sa",
+		//	short:   "Generates a private key for signing service account tokens along with its public key",
+		//	long:    saKeyLongDesc,
+		//	cmdFunc: certsphase.CreateServiceAccountKeyAndPublicKeyFiles,
+		//},
 		{
 			use:     "front-proxy-ca",
 			short:   "Generates front proxy CA certificate and key for a Kubernetes cluster",

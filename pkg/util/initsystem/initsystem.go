@@ -35,8 +35,14 @@ type InitSystem interface {
 	// ServiceIsEnabled ensures the service is enabled to start on each boot.
 	ServiceIsEnabled(service string) bool
 
+	// ServiceEnabled ensures the service is enabled to start on each boot.
+	ServiceEnable(service string) bool
+
 	// ServiceIsActive ensures the service is running, or attempting to run. (crash looping in the case of kubelet)
 	ServiceIsActive(service string) bool
+
+	//daemon-reload
+	DaemonReload() bool
 }
 
 type SystemdInitSystem struct{}
@@ -72,6 +78,15 @@ func (sysd SystemdInitSystem) ServiceIsEnabled(service string) bool {
 	return true
 }
 
+func (sysd SystemdInitSystem) ServiceEnable(service string) bool {
+	args := []string{"enable", service}
+	_, err := exec.Command("systemctl", args...).Output()
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // ServiceIsActive will check is the service is "active". In the case of
 // crash looping services (kubelet in our case) status will return as
 // "activating", so we will consider this active as well.
@@ -84,6 +99,17 @@ func (sysd SystemdInitSystem) ServiceIsActive(service string) bool {
 		return true
 	}
 	return false
+}
+
+func (sysd SystemdInitSystem) DaemonReload() bool {
+	args := []string{"daemon-reload"}
+	// Ignoring error here, command returns non-0
+	_, err := exec.Command("systemctl", args...).Output()
+	if err != nil {
+		return false
+	}
+	return true
+
 }
 
 // WindowsInitSystem is the windows implementation of InitSystem
@@ -129,6 +155,16 @@ func (sysd WindowsInitSystem) ServiceIsActive(service string) bool {
 		return true
 	}
 	return false
+}
+
+func (sysd WindowsInitSystem) DaemonReload() bool {
+	//TODO support windows daemonReload
+	return true
+
+}
+func (sysd WindowsInitSystem) ServiceEnable(service string) bool {
+	//TODO support window serviceEnable
+	return true
 }
 
 // GetInitSystem returns an InitSystem for the current system, or nil

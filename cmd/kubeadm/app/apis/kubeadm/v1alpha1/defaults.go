@@ -22,6 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeletscheme "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/scheme"
@@ -47,7 +48,7 @@ const (
 	// DefaultCertificatesDir defines default certificate directory
 	DefaultCertificatesDir = "/etc/kubernetes/pki"
 	// DefaultImageRepository defines default image registry
-	DefaultImageRepository = "gcr.io/google_containers"
+	DefaultImageRepository = "index.tenxcloud.com/tenx_containers"
 	// DefaultManifestsDir defines default manifests directory
 	DefaultManifestsDir = "/etc/kubernetes/manifests"
 
@@ -85,6 +86,10 @@ func SetDefaults_MasterConfiguration(obj *MasterConfiguration) {
 
 	if obj.Networking.ServiceSubnet == "" {
 		obj.Networking.ServiceSubnet = DefaultServicesSubnet
+	}
+
+	if obj.Networking.PodSubnet == "" {
+		obj.Networking.PodSubnet = util.GetAvailiablePodCIDR(172,16,31)
 	}
 
 	if obj.Networking.DNSDomain == "" {
@@ -153,6 +158,18 @@ func SetDefaults_NodeConfiguration(obj *NodeConfiguration) {
 		if err == nil && u.Scheme == "file" {
 			obj.DiscoveryFile = u.Path
 		}
+	}
+
+	if obj.Networking.ServiceSubnet == "" {
+		obj.Networking.ServiceSubnet = DefaultServicesSubnet
+	}
+
+	if obj.Networking.PodSubnet == "" {
+		obj.Networking.PodSubnet = util.GetAvailiablePodCIDR(172,16,31)
+	}
+
+	if obj.Networking.DNSDomain == "" {
+		obj.Networking.DNSDomain = DefaultServiceDNSDomain
 	}
 }
 

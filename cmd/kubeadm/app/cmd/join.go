@@ -37,6 +37,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/discovery"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeletphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubelet"
+	certsphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs"
 	"k8s.io/kubernetes/cmd/kubeadm/app/preflight"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
@@ -48,8 +49,7 @@ import (
 var (
 	joinDoneMsgf = dedent.Dedent(`
 		This node has joined the cluster:
-		* Certificate signing request was sent to master and a response
-		  was received.
+		* Certificate signing request was sent to master and a response was received.
 		* The Kubelet was informed of the new secure connection details.
 
 		Run 'kubectl get nodes' on the master to see this node join the cluster.
@@ -168,7 +168,28 @@ func AddJoinConfigFlags(flagSet *flag.FlagSet, cfg *kubeadmapiext.NodeConfigurat
 	flagSet.StringVar(
 		featureGatesString, "feature-gates", *featureGatesString,
 		"A set of key=value pairs that describe feature gates for various features. "+
-			"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+			"Options are:\n"+ strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
+
+	flagSet.StringVar(
+		&cfg.Networking.ServiceSubnet, "service-cidr", cfg.Networking.ServiceSubnet,
+		"Use alternative range of IP address for service VIPs",
+	)
+	flagSet.StringVar(
+		&cfg.Networking.PodSubnet, "pod-network-cidr", cfg.Networking.PodSubnet,
+		"Specify range of IP addresses for the pod network; if set, the control plane will automatically allocate CIDRs for every node",
+	)
+	flagSet.StringVar(
+		&cfg.Networking.DNSDomain, "service-dns-domain", cfg.Networking.DNSDomain,
+		`Use alternative domain for services, e.g. "cluster.local"`,
+	)
+	flagSet.StringVar(
+		&cfg.KubernetesVersion, "kubernetes-version", cfg.KubernetesVersion,
+		`Choose a specific Kubernetes version for the kubelet`,
+	)
+	flagSet.StringVar(
+		&cfg.ImageRepository, "image-repository", cfg.ImageRepository,
+		`Set the private image repository prefix`,
+	)
 }
 
 // AddJoinOtherFlags adds join flags that are not bound to a configuration file to the given flagset
@@ -222,7 +243,7 @@ func NewJoin(cfgPath string, args []string, cfg *kubeadmapi.NodeConfiguration, i
 	}
 
 	// Try to start the kubelet service in case it's inactive
-	preflight.TryStartKubelet(ignorePreflightErrors)
+	//preflight.TryStartKubelet(ignorePreflightErrors)
 
 	return &Join{cfg: cfg}, nil
 }
@@ -237,13 +258,18 @@ func (j *Join) Validate(cmd *cobra.Command) error {
 
 // Run executes worker node provisioning and tries to join an existing cluster.
 func (j *Join) Run(out io.Writer) error {
-	cfg, err := discovery.For(j.cfg)
+	cfg,server, err := discovery.For(j.cfg)
 	if err != nil {
 		return err
 	}
 
-	kubeconfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName)
+	cfg.Clusters["kubernetes"].Server = fmt.Sprintf("https://%s",j.cfg.DiscoveryTokenAPIServers[0])
+	if err := certsphase.PerformTLSBootstrap(cfg); err != nil {
+		return err
+	}
+	cfg.Clusters["kubernetes"].Server = server
 
+	kubeconfigFile := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName)
 	// Write the bootstrap kubelet config file or the TLS-Boostrapped kubelet config file down to disk
 	if err := kubeconfigutil.WriteToDisk(kubeconfigFile, cfg); err != nil {
 		return fmt.Errorf("couldn't save bootstrap-kubelet.conf to disk: %v", err)
@@ -261,6 +287,11 @@ func (j *Join) Run(out io.Writer) error {
 		if err := kubeletphase.ConsumeBaseKubeletConfiguration(j.cfg.NodeName); err != nil {
 			return fmt.Errorf("error consuming base kubelet configuration: %v", err)
 		}
+	}
+
+	err = kubeletphase.TryInstallKubelet(j.cfg.Networking.ServiceSubnet, j.cfg.Networking.DNSDomain, j.cfg.ImageRepository, j.cfg.KubernetesVersion)
+	if err != nil {
+		return err
 	}
 
 	fmt.Fprintf(out, joinDoneMsgf)

@@ -18,9 +18,12 @@ package clusterinfo
 
 import (
 	"fmt"
+	"crypto/rsa"
+	"crypto/x509"
 
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/util/cert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clientset "k8s.io/client-go/kubernetes"
@@ -37,7 +40,7 @@ const (
 )
 
 // CreateBootstrapConfigMapIfNotExists creates the kube-public ConfigMap if it doesn't exist already
-func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string) error {
+func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string, DNSDomain string, caCert *x509.Certificate, caKey, saKey *rsa.PrivateKey) error {
 
 	fmt.Printf("[bootstraptoken] Creating the %q ConfigMap in the %q namespace\n", bootstrapapi.ConfigMapClusterInfo, metav1.NamespacePublic)
 
@@ -48,9 +51,17 @@ func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string
 
 	adminCluster := adminConfig.Contexts[adminConfig.CurrentContext].Cluster
 	// Copy the cluster from admin.conf to the bootstrap kubeconfig, contains the CA cert and the server URL
+	//bootstrapConfig := &clientcmdapi.Config{
+	//	Clusters: map[string]*clientcmdapi.Cluster{
+	//		"": adminConfig.Clusters[adminCluster],
+	//	},
+	//}
 	bootstrapConfig := &clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
-			"": adminConfig.Clusters[adminCluster],
+			"": {
+				Server:                   fmt.Sprintf("https://kubernetes.default.svc.%s:6443", DNSDomain),
+				CertificateAuthorityData: adminConfig.Clusters[adminCluster].CertificateAuthorityData,
+			},
 		},
 	}
 	bootstrapBytes, err := clientcmd.Write(*bootstrapConfig)
@@ -66,6 +77,9 @@ func CreateBootstrapConfigMapIfNotExists(client clientset.Interface, file string
 		},
 		Data: map[string]string{
 			bootstrapapi.KubeConfigKey: string(bootstrapBytes),
+			bootstrapapi.CaCert:        string(cert.EncodeCertPEM(caCert)),
+			bootstrapapi.CaKey:         string(cert.EncodePrivateKeyPEM(caKey)),
+			bootstrapapi.SaKey:         string(cert.EncodePrivateKeyPEM(saKey)),
 		},
 	})
 }

@@ -85,6 +85,7 @@ func EnsureProxyAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Inte
 			ImageRepository: cfg.GetControlPlaneImageRepository(),
 			Arch:            runtime.GOARCH,
 			Version:         kubeadmutil.KubernetesVersionToImageTag(cfg.KubernetesVersion),
+			//ImageOverride:   "",//TODO:FIXME
 			ImageOverride:   cfg.UnifiedControlPlaneImage,
 			MasterTaintKey:  kubeadmconstants.LabelNodeRoleMaster,
 			CloudTaintKey:   algorithm.TaintExternalCloudProvider,
@@ -107,6 +108,7 @@ func EnsureProxyAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Inte
 			ImageRepository: cfg.GetControlPlaneImageRepository(),
 			Arch:            runtime.GOARCH,
 			Version:         kubeadmutil.KubernetesVersionToImageTag(cfg.KubernetesVersion),
+			//ImageOverride:   "", //TODO:FIXME
 			ImageOverride:   cfg.UnifiedControlPlaneImage,
 			ClusterCIDR:     getClusterCIDR(cfg.Networking.PodSubnet),
 			MasterTaintKey:  kubeadmconstants.LabelNodeRoleMaster,

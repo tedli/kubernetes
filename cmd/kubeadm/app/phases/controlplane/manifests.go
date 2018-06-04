@@ -131,7 +131,7 @@ func createStaticPodFiles(manifestDir string, cfg *kubeadmapi.MasterConfiguratio
 			return fmt.Errorf("failed to create static pod manifest file for %q: %v", componentName, err)
 		}
 
-		fmt.Printf("[controlplane] Wrote Static Pod manifest for component %s to %q\n", componentName, kubeadmconstants.GetStaticPodFilepath(componentName, manifestDir))
+		fmt.Printf("[controlplane] Wrote Static Pod manifest for  %s to %q\n", componentName, kubeadmconstants.GetStaticPodFilepath(componentName, manifestDir))
 	}
 
 	return nil
@@ -141,28 +141,34 @@ func createStaticPodFiles(manifestDir string, cfg *kubeadmapi.MasterConfiguratio
 func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, k8sVersion *version.Version) []string {
 	defaultArguments := map[string]string{
 		"advertise-address":               cfg.API.AdvertiseAddress,
-		"insecure-port":                   "0",
+		"insecure-port":                   "8080",
+		"insecure-bind-address":           "127.0.0.1",
 		"admission-control":               defaultV19AdmissionControl,
 		"service-cluster-ip-range":        cfg.Networking.ServiceSubnet,
 		"service-account-key-file":        filepath.Join(cfg.CertificatesDir, kubeadmconstants.ServiceAccountPublicKeyName),
 		"client-ca-file":                  filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
 		"tls-cert-file":                   filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerCertName),
 		"tls-private-key-file":            filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKeyName),
+		"kubelet-certificate-authority":   filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
 		"kubelet-client-certificate":      filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKubeletClientCertName),
 		"kubelet-client-key":              filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKubeletClientKeyName),
+		"token-auth-file":                 filepath.Join(cfg.CertificatesDir, "tokens.csv"),
+		"endpoint-reconciler-type":        reconcilers.LeaseEndpointReconcilerType,
 		"enable-bootstrap-token-auth":     "true",
+		"enable-swagger-ui":               "false",
 		"secure-port":                     fmt.Sprintf("%d", cfg.API.BindPort),
 		"allow-privileged":                "true",
-		"kubelet-preferred-address-types": "InternalIP,ExternalIP,Hostname",
+		"kubelet-preferred-address-types": "Hostname,InternalIP,ExternalIP",
 		// add options to configure the front proxy.  Without the generated client cert, this will never be useable
 		// so add it unconditionally with recommended values
 		"requestheader-username-headers":     "X-Remote-User",
 		"requestheader-group-headers":        "X-Remote-Group",
 		"requestheader-extra-headers-prefix": "X-Remote-Extra-",
-		"requestheader-client-ca-file":       filepath.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyCACertName),
-		"requestheader-allowed-names":        "front-proxy-client",
+		"requestheader-client-ca-file":       filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
+		//"requestheader-allowed-names":        "front-proxy-client,aggregator",
 		"proxy-client-cert-file":             filepath.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyClientCertName),
 		"proxy-client-key-file":              filepath.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyClientKeyName),
+		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true",
 	}
 
 	command := []string{"kube-apiserver"}
@@ -227,6 +233,12 @@ func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration, k8sVersion
 		"cluster-signing-key-file":         filepath.Join(cfg.CertificatesDir, kubeadmconstants.CAKeyName),
 		"use-service-account-credentials":  "true",
 		"controllers":                      "*,bootstrapsigner,tokencleaner",
+		"concurrent-deployment-syncs":      "20",
+		"concurrent-service-syncs":         "20",
+		"concurrent-replicaset-syncs":      "20",
+		"pod-eviction-timeout":             "60s",
+		"horizontal-pod-autoscaler-sync-period": "10s",
+		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true",
 	}
 
 	// If using external CA, pass empty string to controller manager instead of ca.key/ca.crt path,
@@ -268,6 +280,8 @@ func getSchedulerCommand(cfg *kubeadmapi.MasterConfiguration) []string {
 	defaultArguments := map[string]string{
 		"address":      "127.0.0.1",
 		"leader-elect": "true",
+		"policy-configmap": "kube-scheduler",
+		"policy-configmap-namespace":"kube-system",
 		"kubeconfig":   filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.SchedulerKubeConfigFileName),
 	}
 

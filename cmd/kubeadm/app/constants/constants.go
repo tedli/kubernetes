@@ -55,6 +55,12 @@ const (
 	// APIServerCertCommonName defines API's server certificate common name (CN)
 	APIServerCertCommonName = "kube-apiserver"
 
+
+	APIServerClientCertAndKeyBaseName = "client"
+	APIServerClientCertName           = "client.crt"
+	APIServerClientKeyName            = "client.key"
+	APIServerClientCertCommonName     = "kubernetes-client"
+
 	// APIServerKubeletClientCertAndKeyBaseName defines kubelet client certificate and key base name
 	APIServerKubeletClientCertAndKeyBaseName = "apiserver-kubelet-client"
 	// APIServerKubeletClientCertName defines kubelet client certificate name

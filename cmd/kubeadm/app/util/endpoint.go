@@ -22,6 +22,7 @@ import (
 	"strconv"
 
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	"strings"
 )
 
 // GetMasterEndpoint returns a properly formatted Master Endpoint
@@ -48,4 +49,13 @@ func GetMasterHostPort(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 
 	hostPort := net.JoinHostPort(masterIP.String(), strconv.Itoa(int(cfg.API.BindPort)))
 	return hostPort, nil
+}
+
+
+func GetImageRepositoryHost(cfg *kubeadmapi.MasterConfiguration) (string, error) {
+	index := strings.Index(cfg.ImageRepository,"/")
+	if index == -1 {
+		return "",fmt.Errorf("%s is not present in %s ","/",cfg.ImageRepository)
+	}
+	return cfg.ImageRepository[:index], nil
 }

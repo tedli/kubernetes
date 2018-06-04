@@ -844,9 +844,10 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 	}
 
 	// check if we can use crictl to perform checks via the CRI
-	criCtlChecker := InPathCheck{executable: "crictl", mandatory: false, exec: execer}
-	warns, _ := criCtlChecker.Check()
-	useCRI := len(warns) == 0
+	//criCtlChecker := InPathCheck{executable: "crictl", mandatory: false, exec: execer}
+	//warns, _ := criCtlChecker.Check()
+	//useCRI := len(warns) == 0
+	useCRI := false
 
 	manifestsDir := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)
 
@@ -855,8 +856,8 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 		SystemVerificationCheck{CRISocket: criSocket},
 		IsPrivilegedUserCheck{},
 		HostnameCheck{nodeName: cfg.NodeName},
-		KubeletVersionCheck{KubernetesVersion: cfg.KubernetesVersion},
-		ServiceCheck{Service: "kubelet", CheckIfActive: false},
+		//KubeletVersionCheck{KubernetesVersion: cfg.KubernetesVersion},
+		//ServiceCheck{Service: "kubelet", CheckIfActive: false},
 		FirewalldCheck{ports: []int{int(cfg.API.BindPort), 10250}},
 		PortOpenCheck{port: int(cfg.API.BindPort)},
 		PortOpenCheck{port: 10250},
@@ -872,12 +873,12 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 		InPathCheck{executable: "iptables", mandatory: true, exec: execer},
 		InPathCheck{executable: "mount", mandatory: true, exec: execer},
 		InPathCheck{executable: "nsenter", mandatory: true, exec: execer},
-		InPathCheck{executable: "ebtables", mandatory: false, exec: execer},
+		//InPathCheck{executable: "ebtables", mandatory: false, exec: execer},
 		InPathCheck{executable: "ethtool", mandatory: false, exec: execer},
-		InPathCheck{executable: "socat", mandatory: false, exec: execer},
+		//InPathCheck{executable: "socat", mandatory: false, exec: execer},
 		InPathCheck{executable: "tc", mandatory: false, exec: execer},
 		InPathCheck{executable: "touch", mandatory: false, exec: execer},
-		criCtlChecker,
+		//criCtlChecker,
 		ExtraArgsCheck{
 			APIServerExtraArgs:         cfg.APIServerExtraArgs,
 			ControllerManagerExtraArgs: cfg.ControllerManagerExtraArgs,
@@ -953,8 +954,8 @@ func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.NodeConfigura
 		SystemVerificationCheck{CRISocket: criSocket},
 		IsPrivilegedUserCheck{},
 		HostnameCheck{cfg.NodeName},
-		KubeletVersionCheck{},
-		ServiceCheck{Service: "kubelet", CheckIfActive: false},
+		//KubeletVersionCheck{},
+		//ServiceCheck{Service: "kubelet", CheckIfActive: false},
 		PortOpenCheck{port: 10250},
 		DirAvailableCheck{Path: filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)},
 		FileAvailableCheck{Path: cfg.CACertPath},
@@ -975,12 +976,13 @@ func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.NodeConfigura
 			InPathCheck{executable: "iptables", mandatory: true, exec: execer},
 			InPathCheck{executable: "mount", mandatory: true, exec: execer},
 			InPathCheck{executable: "nsenter", mandatory: true, exec: execer},
-			InPathCheck{executable: "ebtables", mandatory: false, exec: execer},
+			//InPathCheck{executable: "ebtables", mandatory: false, exec: execer},
 			InPathCheck{executable: "ethtool", mandatory: false, exec: execer},
-			InPathCheck{executable: "socat", mandatory: false, exec: execer},
+			//InPathCheck{executable: "socat", mandatory: false, exec: execer},
 			InPathCheck{executable: "tc", mandatory: false, exec: execer},
 			InPathCheck{executable: "touch", mandatory: false, exec: execer},
-			criCtlChecker)
+			//criCtlChecker
+			)
 	}
 
 	if len(cfg.DiscoveryTokenAPIServers) > 0 {
