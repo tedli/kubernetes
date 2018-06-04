@@ -57,19 +57,29 @@ spec:
             name: resolv
           - mountPath: /tmp/
             name: checklog
+          - mountPath: /etc/kubernetes/manifests/
+            name: k8s-manifests
       volumes:
       - name: docker-sock
         hostPath:
           path: /var/run/docker.sock
+          type: FileOrCreate
       - name: localtime
         hostPath:
           path: /etc/localtime
+          type: FileOrCreate
       - hostPath:
           path: /etc/resolv.conf
+          type: FileOrCreate
         name: resolv
       - hostPath:
           path: /paas/agent_check/
+          type: DirectoryOrCreate
         name: checklog
+      - hostPath:
+          path: /etc/kubernetes/manifests/
+          type: DirectoryOrCreate
+        name: k8s-manifests
 `
 
   // for kubectl
