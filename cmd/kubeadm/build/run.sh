@@ -31,8 +31,8 @@ cat <<EOF
 TenxCloud Enterprise Cloud Deployment Engine\n
 \n
 Command: \n
-    [Option] Join [Master] \n
-    [OPtion] Init \n
+    [Option] Join <Master> \n
+    [OPtion] Init [TCEAddress] \n
     [OPtion] Uninstall \n
 \n
 Option:\n
@@ -40,7 +40,7 @@ Option:\n
     --address        \t Advertised address of the current machine, if not set, it will get a one automatically\n
     --version        \t Cluster version that will be deployed\n
     --token          \t kubernetes token \n
-    --credential     \t credential token to access server\n
+    --credential     \t credential to access tce api server\n
     --ha-peer        \t Peer master in HA mode\n
     --role           \t Role of current machine: master, node, loadbalancer
 EOF
@@ -388,7 +388,7 @@ fi
               exit 0
               shift 1;;
             * )
-                echo "Invalid parameter: $1"
+                #echo "Invalid parameter: $1"
                 echo -e $(Usage)
                 exit 1
         esac

@@ -106,7 +106,7 @@ WantedBy=multi-user.target
 	buf.WriteString("Environment=\"KUBELET_CADVISOR_ARGS=--cadvisor-port=0 --housekeeping-interval=5s  --global-housekeeping-interval=5s \"\n")
 	buf.WriteString("Environment=\"KUBELET_CERT_ARGS=--rotate-certificates=true --cert-dir=/var/lib/kubelet/pki --feature-gates=RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true  \"\n")
 	buf.WriteString("Environment=\"KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs  --pod-infra-container-image=" + fmt.Sprintf("%s/pause-%s:3.0", imageRepository, runtime.GOARCH) + "\"\n")
-	buf.WriteString("Environment=\"KUBELET_PERFORMANCE_ARGS=--kube-reserved=cpu=200m,memory=512Mi  \"\n")
+	buf.WriteString("Environment=\"KUBELET_PERFORMANCE_ARGS=--kube-reserved=cpu=200m,memory=512Mi --serialize-image-pulls=false --image-pull-progress-deadline=5m  \"\n")
 	buf.WriteString("ExecStartPre=/usr/bin/docker run --rm -v /opt/tmp/bin/:/opt/tmp/bin/   ")
 	buf.WriteString(fmt.Sprintf("%s/hyperkube-%s:%s", imageRepository, runtime.GOARCH, kubernetesVersion))
 	buf.WriteString(" /bin/bash -c \"mkdir -p /opt/tmp/bin && cp /opt/cni/bin/* /opt/tmp/bin/ && cp /usr/bin/nsenter /opt/tmp/bin/\" \n")

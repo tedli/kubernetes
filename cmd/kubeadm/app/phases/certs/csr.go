@@ -9,6 +9,7 @@ import (
 	"os"
 	"fmt"
 	"path"
+	"strings"
 	"k8s.io/apimachinery/pkg/types"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/certificate/csr"
@@ -16,6 +17,7 @@ import (
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
+	"github.com/golang/glog"
 )
 
 // PerformTLSBootstrap executes a node certificate signing request.
@@ -32,7 +34,7 @@ func PerformTLSBootstrap(cfg *clientcmdapi.Config) error {
 		return fmt.Errorf("failed to generate private key [%v]", err)
 	}
 
-	hostName, err := os.Hostname()
+	hostName := GetHostname("")
 	cert, err := csr.RequestNodeCertificate(client.CertificatesV1beta1().CertificateSigningRequests(), key, types.NodeName(hostName))
 	if err != nil {
 		return fmt.Errorf("failed to request signed certificate from the API server [%v]", err)
@@ -65,4 +67,18 @@ func writeApiServerClientCert(cfg *clientcmdapi.Config, certData, keyData []byte
 		return fmt.Errorf("couldn't save the client key to disk: %v", err)
 	}
 	return nil
+}
+
+// copy from "k8s.io/kubernetes/pkg/util/node/node.go"
+// GetHostname returns OS's hostname if 'hostnameOverride' is empty; otherwise, return 'hostnameOverride'.
+func GetHostname(hostnameOverride string) string {
+	hostname := hostnameOverride
+	if hostname == "" {
+		nodename, err := os.Hostname()
+		if err != nil {
+			glog.Fatalf("Couldn't determine hostname: %v", err)
+		}
+		hostname = nodename
+	}
+	return strings.ToLower(strings.TrimSpace(hostname))
 }
