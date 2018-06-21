@@ -174,7 +174,7 @@ docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER
 rm -rf $(which calicoctl)
 mv /tmp/calicoctl /usr/bin/  >/dev/null
 
-docker run --net=host -d --cpu-period=100000 --cpu-quota=100000 --memory=100000000 --memory=100000000 --restart=always  -v /tmp:/tmp  -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf   --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION}  --role master --etcd-servers=http://127.0.0.1:2379 ${ADVERTISE_ADDRESSES_AGENT} --dns-enable true --ssl-enable=false >/dev/null
+docker run --net=host -d --cpu-period=100000 --cpu-quota=100000 --memory=100000000 --restart=always  -v /tmp:/tmp  -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf   --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION}  --role master --etcd-servers=http://127.0.0.1:2379 ${ADVERTISE_ADDRESSES_AGENT} --dns-enable true --ssl-enable=false >/dev/null
 result=\$?
 if [ \${result} -eq 0  ];then
    echo "TenxCloud Enterprise Cloud was deployed successfully"
