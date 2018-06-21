@@ -149,7 +149,11 @@ spec:
             privileged: true
           resources:
             requests:
-              cpu: 250m
+              cpu: 100m
+              memory: 150Mi
+            limits:
+              cpu: 100m
+              memory: 150Mi
           livenessProbe:
             httpGet:
               path: /liveness
@@ -178,6 +182,13 @@ spec:
         - name: install-cni
           image: {{ .ImageRepository }}/cni:v1.11.2
           command: ["/install-cni.sh"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              cpu: 10m
+              memory: 50Mi
           env:
             - name: ETCD_ENDPOINTS
               valueFrom:
@@ -278,6 +289,13 @@ spec:
       - name: kube-controller
         image: {{ .ImageRepository }}/kube-controllers:v1.0.3
         imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
         env:
           - name: ETCD_ENDPOINTS
             valueFrom:

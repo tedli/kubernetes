@@ -48,6 +48,13 @@ spec:
             - /check.sh
             - "60"
           image: {{ .ImageRepository }}/kubectl-{{ .Arch }}:{{ .Version }}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
           volumeMounts:
           - name: docker-sock
             mountPath: /var/run/docker.sock

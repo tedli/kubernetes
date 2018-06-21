@@ -81,7 +81,7 @@ func GetStaticPodSpecs(cfg *kubeadmapi.MasterConfiguration, k8sVersion *version.
 			Command:       getAPIServerCommand(cfg, k8sVersion),
 			VolumeMounts:  staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeAPIServer)),
 			LivenessProbe: staticpodutil.ComponentProbe(cfg, kubeadmconstants.KubeAPIServer, int(cfg.API.BindPort), "/healthz", v1.URISchemeHTTPS),
-			Resources:     staticpodutil.ComponentResources("250m"),
+			Resources:     staticpodutil.ComponentResourcesCustomized("250m", "1024Mi", "1000m", "1024Mi"),
 			Env:           getProxyEnvVars(),
 		}, mounts.GetVolumes(kubeadmconstants.KubeAPIServer)),
 		kubeadmconstants.KubeControllerManager: staticpodutil.ComponentPod(v1.Container{
@@ -90,7 +90,7 @@ func GetStaticPodSpecs(cfg *kubeadmapi.MasterConfiguration, k8sVersion *version.
 			Command:       getControllerManagerCommand(cfg, k8sVersion),
 			VolumeMounts:  staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeControllerManager)),
 			LivenessProbe: staticpodutil.ComponentProbe(cfg, kubeadmconstants.KubeControllerManager, 10252, "/healthz", v1.URISchemeHTTP),
-			Resources:     staticpodutil.ComponentResources("200m"),
+			Resources:     staticpodutil.ComponentResourcesCustomized("200m", "512Mi", "1000m", "512Mi"),
 			Env:           getProxyEnvVars(),
 		}, mounts.GetVolumes(kubeadmconstants.KubeControllerManager)),
 		kubeadmconstants.KubeScheduler: staticpodutil.ComponentPod(v1.Container{
@@ -99,7 +99,7 @@ func GetStaticPodSpecs(cfg *kubeadmapi.MasterConfiguration, k8sVersion *version.
 			Command:       getSchedulerCommand(cfg),
 			VolumeMounts:  staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeScheduler)),
 			LivenessProbe: staticpodutil.ComponentProbe(cfg, kubeadmconstants.KubeScheduler, 10251, "/healthz", v1.URISchemeHTTP),
-			Resources:     staticpodutil.ComponentResources("100m"),
+			Resources:     staticpodutil.ComponentResourcesCustomized("100m", "512Mi", "1000m", "512Mi"),
 			Env:           getProxyEnvVars(),
 		}, mounts.GetVolumes(kubeadmconstants.KubeScheduler)),
 	}
