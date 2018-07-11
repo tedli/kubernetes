@@ -174,7 +174,7 @@ docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER
 rm -rf $(which calicoctl)
 mv /tmp/calicoctl /usr/bin/  >/dev/null
 
-docker run --net=host -d --restart=always  -v /tmp:/tmp  -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf   --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION}  --role master --etcd-servers=http://127.0.0.1:2379 ${ADVERTISE_ADDRESSES_AGENT} --dns-enable true --ssl-enable=false >/dev/null
+docker run --net=host -d --cpu-period=100000 --cpu-quota=100000 --memory=100000000 --restart=always  -v /tmp:/tmp  -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf   --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION}  --role master --etcd-servers=http://127.0.0.1:2379 ${ADVERTISE_ADDRESSES_AGENT} --dns-enable true --ssl-enable=false >/dev/null
 result=\$?
 if [ \${result} -eq 0  ];then
    echo "TenxCloud Enterprise Cloud was deployed successfully"
@@ -225,7 +225,7 @@ docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER
 rm -rf $(which calicoctl)
 mv /tmp/calicoctl /usr/bin/  >/dev/null
 
-docker run --net=host -d --restart=always -v /etc/kubernetes:/etc/kubernetes -v /etc/hosts:/etc/hosts -v /etc/resolv.conf:/etc/resolv.conf --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION} ${ADVERTISE_ADDRESSES_AGENT} --role master --etcd-servers=http://127.0.0.1:2379 --dns-enable true  --ssl-enable=false >/dev/null
+docker run --net=host -d --cpu-period=100000 --cpu-quota=100000 --memory=100000000 --restart=always -v /etc/kubernetes:/etc/kubernetes -v /etc/hosts:/etc/hosts -v /etc/resolv.conf:/etc/resolv.conf --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION} ${ADVERTISE_ADDRESSES_AGENT} --role master --etcd-servers=http://127.0.0.1:2379 --dns-enable true  --ssl-enable=false >/dev/null
 result=\$?
 if [ \${result} -eq 0  ];then
    echo "TenxCloud Enterprise Cloud was deployed successfully"
@@ -279,7 +279,7 @@ Clean
 
 result=0
 echo "Deploying loadbalancer..."
-docker run --net=host -d --restart=always -v /tmp:/tmp  -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf --name agent ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION}  ${ADVERTISE_ADDRESSES_AGENT} --role loadbalancer --etcd-servers=https://${MASTER}:2379 --accesstoken=${K8S_TOKEN} --cert-servers=${MASTER} --dns-enable false --ssl-enable=true >/dev/null
+docker run --net=host -d --cpu-period=100000 --cpu-quota=100000 --memory=100000000 --restart=always -v /tmp:/tmp  -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf --name agent ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION}  ${ADVERTISE_ADDRESSES_AGENT} --role loadbalancer --etcd-servers=https://${MASTER}:2379 --accesstoken=${K8S_TOKEN} --cert-servers=${MASTER} --dns-enable false --ssl-enable=true >/dev/null
 result=\$?
 if [ \${result} -eq 0  ];then
    echo "TenxCloud Enterprise Cloud was deployed successfully"
@@ -314,7 +314,7 @@ result=0
 /tmp/kubeadm join --token ${K8S_TOKEN} ${MASTER}:6443  --discovery-token-ca-cert-hash ${CA_CERT_HASH} --image-repository ${REGISTRY_SERVER}/${REGISTRY_USER}  --kubernetes-version ${K8S_VERSION}  ${pod_cidr_parameter} ${service_cidr_parameter} ${service_dns_domain_parameter}
 result=\$?
 rm /tmp/kubeadm 2>/dev/null
-docker run --net=host -d --restart=always  -v /tmp:/tmp -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION} ${ADVERTISE_ADDRESSES_AGENT} --role node --etcd-servers=https://${MASTER}:2379 --dns-enable true --cert-dir /etc/kubernetes/pki  --accesstoken=${K8S_TOKEN} --cert-servers=${MASTER}  --ssl-enable=true >/dev/null
+docker run --net=host -d --cpu-period=100000 --cpu-quota=100000 --memory=100000000 --restart=always  -v /tmp:/tmp -v /etc/hosts:/etc/hosts -v /etc/kubernetes:/etc/kubernetes  -v /etc/resolv.conf:/etc/resolv.conf --name agent  ${REGISTRY_SERVER}/${REGISTRY_USER}/agent:${AGENT_VERSION} ${ADVERTISE_ADDRESSES_AGENT} --role node --etcd-servers=https://${MASTER}:2379 --dns-enable true --cert-dir /etc/kubernetes/pki  --accesstoken=${K8S_TOKEN} --cert-servers=${MASTER}  --ssl-enable=true >/dev/null
 result=\$?
 if [ \${result} -eq 0  ];then
    echo "TenxCloud Enterprise Cloud was deployed successfully"

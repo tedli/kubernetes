@@ -79,6 +79,20 @@ func ComponentResources(cpu string) v1.ResourceRequirements {
 	}
 }
 
+// ComponentResources returns the v1.ResourceRequirements object needed for allocating a specified amount of the CPU
+func ComponentResourcesCustomized(rCpu, rMemory, lCpu, lMemory string) v1.ResourceRequirements {
+	return v1.ResourceRequirements{
+		Requests: v1.ResourceList{
+			v1.ResourceName(v1.ResourceCPU):    resource.MustParse(rCpu),
+			v1.ResourceName(v1.ResourceMemory): resource.MustParse(rMemory),
+		},
+		Limits: v1.ResourceList{
+			v1.ResourceName(v1.ResourceCPU):    resource.MustParse(lCpu),
+			v1.ResourceName(v1.ResourceMemory): resource.MustParse(lMemory),
+		},
+	}
+}
+
 // ComponentProbe is a helper function building a ready v1.Probe object from some simple parameters
 func ComponentProbe(cfg *kubeadmapi.MasterConfiguration, componentName string, port int, path string, scheme v1.URIScheme) *v1.Probe {
 	return &v1.Probe{
