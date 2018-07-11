@@ -128,6 +128,12 @@ func (r *Reset) Run(out io.Writer) error {
 	if err != nil {
 		fmt.Printf("[reset] Failed to unmount mounted directories in /var/lib/kubelet: %s\n", string(umountOutputBytes))
 	}
+    // remove /etc/systemd/system/kubelet.service*
+	removeServiceCmd := "rm -rf /etc/systemd/system/kubelet.service* "
+	removeServiceCmdBytes, err := exec.Command("sh", "-c", removeServiceCmd).Output()
+	if err != nil {
+		fmt.Printf("[reset] Failed to remote kubelet.service : %s\n", string(removeServiceCmdBytes))
+	}
 
 	fmt.Println("[reset] Removing kubernetes-managed containers.")
 	dockerCheck := preflight.ServiceCheck{Service: "docker", CheckIfActive: true}
