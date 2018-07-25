@@ -159,7 +159,7 @@ spec:
               path: /liveness
               port: 9099
             periodSeconds: 10
-            initialDelaySeconds: 10
+            initialDelaySeconds: 60
             failureThreshold: 6
           readinessProbe:
             httpGet:

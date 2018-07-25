@@ -8,7 +8,7 @@ package serviceproxy
 
 const (
 
-	TenxProxyVersion         = "v2.2.0"
+	TenxProxyVersion         = "v3.0"
 	TenxProxyDomainConfigMap = `
 apiVersion: v1
 kind: ConfigMap
