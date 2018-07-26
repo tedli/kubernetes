@@ -168,7 +168,7 @@ func getAPIServerCommand(cfg *kubeadmapi.MasterConfiguration, k8sVersion *versio
 		//"requestheader-allowed-names":        "front-proxy-client,aggregator",
 		"proxy-client-cert-file":             filepath.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyClientCertName),
 		"proxy-client-key-file":              filepath.Join(cfg.CertificatesDir, kubeadmconstants.FrontProxyClientKeyName),
-		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true",
+		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true,CustomPodDNS=true",
 	}
 
 	command := []string{"kube-apiserver"}
@@ -238,7 +238,7 @@ func getControllerManagerCommand(cfg *kubeadmapi.MasterConfiguration, k8sVersion
 		"concurrent-replicaset-syncs":      "20",
 		"pod-eviction-timeout":             "60s",
 		"horizontal-pod-autoscaler-sync-period": "10s",
-		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true",
+		"feature-gates":                    "RotateKubeletServerCertificate=true,ExpandPersistentVolumes=true,CustomPodDNS=true",
 	}
 
 	// If using external CA, pass empty string to controller manager instead of ca.key/ca.crt path,
