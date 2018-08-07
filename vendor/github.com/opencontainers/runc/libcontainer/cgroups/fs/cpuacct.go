@@ -85,7 +85,7 @@ func getCpuUsageBreakdown(path string) (uint64, uint64, error) {
 		return 0, 0, err
 	}
 	fields := strings.Fields(string(data))
-	if len(fields) != 4 {
+	if len(fields) != 4 && len(fields) != 6 {
 		return 0, 0, fmt.Errorf("failure - %s is expected to have 4 fields", filepath.Join(path, cgroupCpuacctStat))
 	}
 	if fields[0] != userField {
