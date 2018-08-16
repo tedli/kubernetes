@@ -466,7 +466,11 @@ func (i *Init) Run(out io.Writer) error {
 		}
 
 		if i.cfg.ApiServerUrl != "" && i.cfg.ApiServerCredential != "" {
-			if err := controlplanephase.CallBack(i.cfg.ApiServerCredential, i.cfg.ApiServerUrl, i.cfg.Token, i.cfg.API.AdvertiseAddress); err != nil {
+			k8sAddress := i.cfg.API.AdvertiseAddress
+			if len(i.cfg.APIServerCertSANs) != 0 {
+				k8sAddress = i.cfg.APIServerCertSANs[0]
+			}
+			if err := controlplanephase.CallBack(i.cfg.ApiServerCredential, i.cfg.ApiServerUrl, i.cfg.Token, k8sAddress); err != nil {
 				return err
 			}
 		}
