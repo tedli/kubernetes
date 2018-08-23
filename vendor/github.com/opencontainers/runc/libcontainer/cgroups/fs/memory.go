@@ -50,6 +50,8 @@ func (s *MemoryGroup) Apply(d *cgroupData) (err error) {
 				// error when people use `cgroupsPath` to join an existed
 				// cgroup whose kernel memory is not initialized.
 				// http://jira.tenxcloud.com/browse/LOT-1896 http://jira.tenxcloud.com/browse/MAS-159
+				// https://github.com/kubernetes/kubernetes/issues/61937
+				// https://github.com/opencontainers/runc/issues/1725
 				logrus.Warn("Warning: kernel memory accounting will be enabled, it may cause cgroup leak if kernel version is some old: %d", d.config.KernelMemory)
 				if err := EnableKernelMemoryAccounting(path); err != nil {
 					return err
