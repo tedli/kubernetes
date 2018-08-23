@@ -14,6 +14,7 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/sirupsen/logrus"
 
 	"golang.org/x/sys/unix"
 )
@@ -43,12 +44,16 @@ func (s *MemoryGroup) Apply(d *cgroupData) (err error) {
 			if err := os.MkdirAll(path, 0755); err != nil {
 				return err
 			}
-			// Only enable kernel memory accouting when this cgroup
-			// is created by libcontainer, otherwise we might get
-			// error when people use `cgroupsPath` to join an existed
-			// cgroup whose kernel memory is not initialized.
-			if err := EnableKernelMemoryAccounting(path); err != nil {
-				return err
+			if d.config.KernelMemory != 0 {
+				// Only enable kernel memory accouting when this cgroup
+				// is created by libcontainer, otherwise we might get
+				// error when people use `cgroupsPath` to join an existed
+				// cgroup whose kernel memory is not initialized.
+				// http://jira.tenxcloud.com/browse/LOT-1896 http://jira.tenxcloud.com/browse/MAS-159
+				logrus.Warn("Warning: kernel memory accounting will be enabled, it may cause cgroup leak if kernel version is some old: %d", d.config.KernelMemory)
+				if err := EnableKernelMemoryAccounting(path); err != nil {
+					return err
+				}
 			}
 		}
 	}
