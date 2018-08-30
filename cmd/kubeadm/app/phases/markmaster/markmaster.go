@@ -96,3 +96,53 @@ func addTaintIfNotExists(n *v1.Node, t v1.Taint) {
 
 	n.Spec.Taints = append(n.Spec.Taints, t)
 }
+
+// Deprecated : see api-server
+// MarkNode  sets the node label node-role.kubernetes.io/slave
+func MarkNode(client clientset.Interface, node string) error {
+
+	fmt.Printf("[marknode] Will mark node %s as slave by adding a label %s \n", node,kubeadmconstants.LabelNodeRoleSlave)
+
+	// Loop on every falsy return. Return with an error if raised. Exit successfully if true is returned.
+	return wait.Poll(kubeadmconstants.APICallRetryInterval, kubeadmconstants.UpdateNodeTimeout, func() (bool, error) {
+		// First get the node object
+		n, err := client.CoreV1().Nodes().Get(node, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+
+		// The node may appear to have no labels at first,
+		// so we wait for it to get hostname label.
+		if _, found := n.ObjectMeta.Labels[kubeletapis.LabelHostname]; !found {
+			fmt.Printf("[marknode]  node %s not yet joined in this k8s cluster",node)
+			return false, nil
+		}
+
+		oldData, err := json.Marshal(n)
+		if err != nil {
+			return false, err
+		}
+
+		// The master node should be tainted and labelled accordingly
+		n.ObjectMeta.Labels[kubeadmconstants.LabelNodeRoleSlave] = ""
+
+		newData, err := json.Marshal(n)
+		if err != nil {
+			return false, err
+		}
+
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, v1.Node{})
+		if err != nil {
+			return false, err
+		}
+		if _, err := client.CoreV1().Nodes().Patch(n.Name, types.StrategicMergePatchType, patchBytes); err != nil {
+			if apierrs.IsConflict(err) {
+				fmt.Println("[marknode] Temporarily unable to update node metadata due to conflict (will retry)")
+				return false, nil
+			}
+			return false, err
+		}
+		fmt.Printf("[marknode] Node %s labelled with key/value: %s=%q\n", node, kubeadmconstants.LabelNodeRoleSlave, "")
+		return true, nil
+	})
+}

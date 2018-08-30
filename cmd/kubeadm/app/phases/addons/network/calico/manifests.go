@@ -346,7 +346,8 @@ metadata:
   name: ippool
   namespace: kube-system
   annotations:
-    networking.kubernetes.io/service-cidr: {{ .ServiceSubnet }}
+    networking.kubernetes.io/pod-cidr: {{ .PodSubnet }}
+	networking.kubernetes.io/service-cidr: {{ .ServiceSubnet }}
 data:
   ippool.yaml: |-
     apiVersion: v1

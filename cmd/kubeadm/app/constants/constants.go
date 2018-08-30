@@ -147,6 +147,10 @@ const (
 	// This is a duplicate definition of the constant in pkg/controller/service/service_controller.go
 	LabelNodeRoleMaster = "node-role.kubernetes.io/master"
 
+	// LabelNodeRoleSlave specifies that a node is a slave
+	// This is a duplicate definition of the constant in pkg/controller/service/service_controller.go
+	LabelNodeRoleSlave = "node-role.kubernetes.io/slave"
+
 	// MasterConfigurationConfigMap specifies in what ConfigMap in the kube-system namespace the `kubeadm init` configuration should be stored
 	MasterConfigurationConfigMap = "kubeadm-config"
 
