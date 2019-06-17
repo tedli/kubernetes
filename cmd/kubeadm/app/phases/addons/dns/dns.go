@@ -19,6 +19,7 @@ package dns
 import (
 	"encoding/json"
 	"fmt"
+	"k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/dnsautoscaler"
 	"strings"
 
 	"github.com/mholt/caddy/caddyfile"
@@ -75,10 +76,14 @@ func DeployedDNSAddon(client clientset.Interface) (kubeadmapi.DNSAddOnType, stri
 
 // EnsureDNSAddon creates the kube-dns or CoreDNS addon
 func EnsureDNSAddon(cfg *kubeadmapi.ClusterConfiguration, client clientset.Interface) error {
-	if cfg.DNS.Type == kubeadmapi.CoreDNS {
-		return coreDNSAddon(cfg, client)
+	var err error
+	if cfg.DNS.Type == kubeadmapi.KubeDNS {
+		err = kubeDNSAddon(cfg, client)
+	} else {
+		err = coreDNSAddon(cfg, client)
 	}
-	return kubeDNSAddon(cfg, client)
+	err = dnsautoscaler.DnsAutoscalerAddOn(cfg, client)
+	return err
 }
 
 func kubeDNSAddon(cfg *kubeadmapi.ClusterConfiguration, client clientset.Interface) error {
@@ -214,7 +219,7 @@ func coreDNSAddon(cfg *kubeadmapi.ClusterConfiguration, client clientset.Interfa
 	if err := createCoreDNSAddon(coreDNSDeploymentBytes, coreDNSServiceBytes, coreDNSConfigMapBytes, client); err != nil {
 		return err
 	}
-	fmt.Println("[addons] Applied essential addon: CoreDNS")
+	fmt.Println("[addons] Applied essential addon: coredns")
 	return nil
 }
 

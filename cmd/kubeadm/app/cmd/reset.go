@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -38,7 +37,7 @@ import (
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	etcdphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd"
-	uploadconfig "k8s.io/kubernetes/cmd/kubeadm/app/phases/uploadconfig"
+	"k8s.io/kubernetes/cmd/kubeadm/app/phases/uploadconfig"
 	"k8s.io/kubernetes/cmd/kubeadm/app/preflight"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
@@ -175,6 +174,12 @@ func (r *Reset) Run(out io.Writer, client clientset.Interface, cfg *kubeadmapi.I
 			klog.Warningf("[reset] The kubelet service could not be stopped by kubeadm: [%v]\n", err)
 			klog.Warningln("[reset] Please ensure kubelet is stopped manually")
 		}
+		if  initSystem.ServiceIsActive("keepalived") {
+			if err := initSystem.ServiceStop("keepalived"); err != nil {
+				klog.Warningf("[reset] The keepalived service could not be stopped by kubeadm: [%v]\n", err)
+				klog.Warningln("[reset] Please ensure keepalived is stopped manually")
+			}
+		}
 	}
 
 	// Try to unmount mounted directories under kubeadmconstants.KubeletRunDirectory in order to be able to remove the kubeadmconstants.KubeletRunDirectory directory later
@@ -185,6 +190,25 @@ func (r *Reset) Run(out io.Writer, client clientset.Interface, cfg *kubeadmapi.I
 	umountOutputBytes, err := exec.Command("sh", "-c", umountDirsCmd).Output()
 	if err != nil {
 		klog.Errorf("[reset] Failed to unmount mounted directories in %s: %s\n", kubeadmconstants.KubeletRunDirectory, string(umountOutputBytes))
+	}
+
+	// remove /etc/systemd/system/kubelet.service*
+	removeServiceCmd := "rm -rf /etc/systemd/system/kubelet.service* "
+	removeServiceCmdBytes, err := exec.Command("sh", "-c", removeServiceCmd).Output()
+	if err != nil {
+		fmt.Printf("[reset] Failed to remove kubelet.service : %s\n", string(removeServiceCmdBytes))
+	}
+	// remove /etc/systemd/system/keepalived.service*
+	keepAlivedServiceCmd := "rm -rf /etc/systemd/system/keepalived.service "
+	keepAlivedServiceCmdBytes, err := exec.Command("sh", "-c", keepAlivedServiceCmd).Output()
+	if err != nil {
+		fmt.Printf("[reset] Failed to remove kubelet.service : %s\n", string(keepAlivedServiceCmdBytes))
+	}
+
+	iptablesClean := "iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X "
+	iptablesCleanBytes, err := exec.Command("sh", "-c", iptablesClean).Output()
+	if err != nil {
+		fmt.Printf("[reset] Failed to clean iptables rules : %s\n", string(iptablesCleanBytes))
 	}
 
 	klog.V(1).Info("[reset] Removing Kubernetes-managed containers")
@@ -209,17 +233,17 @@ func (r *Reset) Run(out io.Writer, client clientset.Interface, cfg *kubeadmapi.I
 	resetConfigDir(kubeadmconstants.KubernetesDir, r.certsDir)
 
 	// Output help text instructing user how to remove iptables rules
-	msg := dedent.Dedent(`
-		The reset process does not reset or clean up iptables rules or IPVS tables.
-		If you wish to reset iptables, you must do so manually.
-		For example:
-		iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
-
-		If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
-		to reset your system's IPVS tables.
-
-	`)
-	fmt.Print(msg)
+	//msg := dedent.Dedent(`
+	//	The reset process does not reset or clean up iptables rules or IPVS tables.
+	//	If you wish to reset iptables, you must do so manually.
+	//	For example:
+	//	iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+	//
+	//	If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+	//	to reset your system's IPVS tables.
+	//
+	//`)
+	//fmt.Print(msg)
 
 	return nil
 }
@@ -231,7 +255,7 @@ func getEtcdDataDir(manifestPath string, cfg *kubeadmapi.InitConfiguration) (str
 	if cfg != nil && cfg.Etcd.Local != nil {
 		return cfg.Etcd.Local.DataDir, nil
 	}
-	klog.Warningln("[reset] No kubeadm config, using etcd pod spec to get data directory")
+	klog.Infoln("[reset] No kubeadm config, using etcd pod spec to get data directory")
 
 	etcdPod, err := utilstaticpod.ReadStaticPodFromDisk(manifestPath)
 	if err != nil {

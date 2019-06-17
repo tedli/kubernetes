@@ -66,52 +66,11 @@ func KubernetesReleaseVersion(version string) (string, error) {
 		return ver, nil
 	}
 
-	bucketURL, versionLabel, err := splitVersion(version)
+	body, err := kubeadmVersion(pkgversion.Get().String())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not fetch a Kubernetes version from the kubeadm [%v]", err)
 	}
-
-	// revalidate, if exact build from e.g. CI bucket requested.
-	ver = normalizedBuildVersion(versionLabel)
-	if len(ver) != 0 {
-		return ver, nil
-	}
-
-	// kubeReleaseLabelRegex matches labels such as: latest, latest-1, latest-1.10
-	if kubeReleaseLabelRegex.MatchString(versionLabel) {
-		// Try to obtain a client version.
-		// pkgversion.Get().String() should always return a correct version added by the golang
-		// linker and the build system. The version can still be missing when doing unit tests
-		// on individual packages.
-		clientVersion, clientVersionErr := kubeadmVersion(pkgversion.Get().String())
-		// Fetch version from the internet.
-		url := fmt.Sprintf("%s/%s.txt", bucketURL, versionLabel)
-		body, err := fetchFromURL(url, getReleaseVersionTimeout)
-		if err != nil {
-			// If the network operaton was successful but the server did not reply with StatusOK
-			if body != "" {
-				return "", err
-			}
-			// Handle air-gapped environments by falling back to the client version.
-			klog.Infof("could not fetch a Kubernetes version from the internet: %v", err)
-			klog.Infof("falling back to the local client version: %s", clientVersion)
-			return KubernetesReleaseVersion(clientVersion)
-		}
-
-		if clientVersionErr != nil {
-			klog.Warningf("could not obtain client version; using remote version: %s", body)
-			return KubernetesReleaseVersion(body)
-		}
-
-		// both the client and the remote version are obtained; validate them and pick a stable version
-		body, err = validateStableVersion(body, clientVersion)
-		if err != nil {
-			return "", err
-		}
-		// Re-validate received version and return.
-		return KubernetesReleaseVersion(body)
-	}
-	return "", errors.Errorf("version %q doesn't match patterns for neither semantic version nor labels (stable, latest, ...)", version)
+	return body, nil
 }
 
 // KubernetesVersionToImageTag is helper function that replaces all

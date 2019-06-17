@@ -65,12 +65,6 @@ var (
 		* The Kubernetes control plane instances scaled up.
 		{{.etcdMessage}}
 
-		To start administering your cluster from this node, you need to run the following as a regular user:
-
-			mkdir -p $HOME/.kube
-			sudo cp -i {{.KubeConfigPath}} $HOME/.kube/config
-			sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
 		Run 'kubectl get nodes' to see this node join the cluster.
 
 		`)))
@@ -198,10 +192,13 @@ func NewCmdJoin(out io.Writer, joinOptions *joinOptions) *cobra.Command {
 	addJoinOtherFlags(cmd.Flags(), joinOptions)
 
 	joinRunner.AppendPhase(phases.NewPreflightPhase())
+	joinRunner.AppendPhase(phases.NewKeepAlivedPhase())
 	joinRunner.AppendPhase(phases.NewControlPlanePreparePhase())
 	joinRunner.AppendPhase(phases.NewCheckEtcdPhase())
-	joinRunner.AppendPhase(phases.NewKubeletStartPhase())
+	joinRunner.AppendPhase(phases.NewKubeletPhase())
 	joinRunner.AppendPhase(phases.NewControlPlaneJoinPhase())
+	joinRunner.AppendPhase(phases.NewEtcdClientCertsPhase())
+	joinRunner.AppendPhase(phases.NewMarkWorkerPhase())
 
 	// sets the data builder function, that will be used by the runner
 	// both when running the entire workflow or single phases

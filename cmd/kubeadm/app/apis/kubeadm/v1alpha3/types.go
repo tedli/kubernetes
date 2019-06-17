@@ -120,6 +120,12 @@ type ClusterConfiguration struct {
 
 	// The cluster name
 	ClusterName string `json:"clusterName,omitempty"`
+
+	// TenxCloud Enterprise Server Address
+	ApiServerUrl        string   `json:"apiServerUrl"`
+
+	// Credential to access TenxCloud Enterprise Server
+	ApiServerCredential  string   `json:"apiServerCredential"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -174,6 +180,10 @@ type Networking struct {
 	PodSubnet string `json:"podSubnet"`
 	// DNSDomain is the dns domain used by k8s services. Defaults to "cluster.local".
 	DNSDomain string `json:"dnsDomain"`
+	// Network Plugin: calico ....
+	Plugin    string `json:"plugin"`
+	// Network Mode: ipv4, ipv6, dual-stack
+	Mode      string `json:mode`
 }
 
 // BootstrapToken describes one bootstrap token, stored as a Secret in the cluster

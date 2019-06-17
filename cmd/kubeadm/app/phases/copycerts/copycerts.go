@@ -48,6 +48,7 @@ const (
 	externalEtcdCA   = "external-etcd-ca.crt"
 	externalEtcdCert = "external-etcd.crt"
 	externalEtcdKey  = "external-etcd.key"
+	certificateKey   = "certificate-key"
 )
 
 // createShortLivedBootstrapToken creates the token used to manager kubeadm-certs
@@ -86,7 +87,7 @@ func CreateCertificateKey() (string, error) {
 
 //UploadCerts save certs needs to join a new control-plane on kubeadm-certs sercret.
 func UploadCerts(client clientset.Interface, cfg *kubeadmapi.InitConfiguration, key string) error {
-	fmt.Printf("[upload-certs] Storing the certificates in ConfigMap %q in the %q Namespace\n", kubeadmconstants.KubeadmCertsSecret, metav1.NamespaceSystem)
+	fmt.Printf("[upload-certs] Storing the certificates in Secret %q in the %q Namespace\n", kubeadmconstants.KubeadmCertsSecret, metav1.NamespaceSystem)
 	decodedKey, err := hex.DecodeString(key)
 	if err != nil {
 		return err
@@ -110,6 +111,7 @@ func UploadCerts(client clientset.Interface, cfg *kubeadmapi.InitConfiguration, 
 			Name:            kubeadmconstants.KubeadmCertsSecret,
 			Namespace:       metav1.NamespaceSystem,
 			OwnerReferences: ref,
+			Annotations:     map[string]string{ certificateKey: key },
 		},
 		Data: secretData,
 	})
@@ -210,17 +212,17 @@ func getDataFromDisk(cfg *kubeadmapi.InitConfiguration, key []byte) (map[string]
 }
 
 // DownloadCerts downloads the certificates needed to join a new control plane.
-func DownloadCerts(client clientset.Interface, cfg *kubeadmapi.InitConfiguration, key string) error {
+func DownloadCerts(client clientset.Interface, cfg *kubeadmapi.InitConfiguration) error {
 	fmt.Printf("[download-certs] Downloading the certificates in Secret %q in the %q Namespace\n", kubeadmconstants.KubeadmCertsSecret, metav1.NamespaceSystem)
-
-	decodedKey, err := hex.DecodeString(key)
-	if err != nil {
-		return errors.Wrap(err, "error decoding certificate key")
-	}
 
 	secret, err := getSecret(client)
 	if err != nil {
 		return errors.Wrap(err, "error downloading the secret")
+	}
+
+	decodedKey, err := hex.DecodeString(secret.Annotations[certificateKey])
+	if err != nil {
+		return errors.Wrap(err, "error decoding certificate key")
 	}
 
 	secretData, err := getDataFromSecret(secret, decodedKey)

@@ -108,12 +108,12 @@ func GetAllImages(cfg *kubeadmapi.ClusterConfiguration) []string {
 	}
 
 	// Append the appropriate DNS images
-	if cfg.DNS.Type == kubeadmapi.CoreDNS {
-		imgs = append(imgs, GetDNSImage(cfg, constants.CoreDNSImageName))
-	} else {
+	if cfg.DNS.Type == kubeadmapi.KubeDNS {
 		imgs = append(imgs, GetDNSImage(cfg, constants.KubeDNSKubeDNSImageName))
 		imgs = append(imgs, GetDNSImage(cfg, constants.KubeDNSSidecarImageName))
 		imgs = append(imgs, GetDNSImage(cfg, constants.KubeDNSDnsMasqNannyImageName))
+	} else {
+		imgs = append(imgs, GetDNSImage(cfg, constants.CoreDNSImageName))
 	}
 
 	return imgs

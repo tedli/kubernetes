@@ -52,6 +52,10 @@ type InitConfiguration struct {
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
 	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
+
+	// CertificateKey sets the key with which certificates and keys are encrypted prior to being uploaded in
+	// a secret in the cluster during the uploadcerts init phase.
+	CertificateKey string `json:"certificateKey,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -111,6 +115,12 @@ type ClusterConfiguration struct {
 
 	// The cluster name
 	ClusterName string `json:"clusterName,omitempty"`
+
+	// TenxCloud Enterprise Server Address
+	ApiServerUrl        string   `json:"apiServerUrl"`
+
+	// Credential to access TenxCloud Enterprise Server
+	ApiServerCredential  string   `json:"apiServerCredential"`
 }
 
 // ControlPlaneComponent holds settings common to control plane component of the cluster
@@ -221,6 +231,10 @@ type Networking struct {
 	PodSubnet string `json:"podSubnet"`
 	// DNSDomain is the dns domain used by k8s services. Defaults to "cluster.local".
 	DNSDomain string `json:"dnsDomain"`
+	// Network Plugin: calico ....
+	Plugin    string `json:"plugin"`
+	// Network Mode: ipv4, ipv6, dual-stack
+	Mode      string `json:"mode"`
 }
 
 // BootstrapToken describes one bootstrap token, stored as a Secret in the cluster

@@ -114,6 +114,15 @@ const (
 	// APIServerEtcdClientCertCommonName defines apiserver's etcd client certificate common name (CN)
 	APIServerEtcdClientCertCommonName = "kube-apiserver-etcd-client"
 
+	// EtcdClientCertAndKeyBaseName defines etcd client certificate and key base name
+	EtcdClientCertAndKeyBaseName = "etcd/client"
+	// EtcdClientCertName defines etcd client certificate name
+	EtcdClientCertName = "etcd/client.crt"
+	// EtcdClientKeyName defines etcd client key name
+	EtcdClientKeyName = "etcd/client.key"
+	// EtcdClientCertCommonName defines etcd client certificate common name (CN)
+	EtcdClientCertCommonName = "etcd-client"
+
 	// ServiceAccountKeyBaseName defines SA key base name
 	ServiceAccountKeyBaseName = "sa"
 	// ServiceAccountPublicKeyName defines SA public key base name
@@ -201,6 +210,10 @@ const (
 	// LabelNodeRoleMaster specifies that a node is a control-plane
 	// This is a duplicate definition of the constant in pkg/controller/service/service_controller.go
 	LabelNodeRoleMaster = "node-role.kubernetes.io/master"
+
+	// LabelNodeRoleSlave specifies that a node is a worker
+	// This is a duplicate definition of the constant in pkg/controller/service/service_controller.go
+	LabelNodeRoleWorker = "node-role.kubernetes.io/worker"
 
 	// AnnotationKubeadmCRISocket specifies the annotation kubeadm uses to preserve the crisocket information given to kubeadm at
 	// init/join time for use later. kubeadm annotates the node object with this information
@@ -339,7 +352,7 @@ const (
 	KubeDNSVersion = "1.14.13"
 
 	// CoreDNSVersion is the version of CoreDNS to be deployed if it is used
-	CoreDNSVersion = "1.3.1"
+	CoreDNSVersion = "1.5.0"
 
 	// ClusterConfigurationKind is the string kind value for the ClusterConfiguration struct
 	ClusterConfigurationKind = "ClusterConfiguration"
@@ -362,6 +375,15 @@ const (
 
 	// KubeadmCertsSecret specifies in what Secret in the kube-system namespace the certificates should be stored
 	KubeadmCertsSecret = "kubeadm-certs"
+
+	NetworkIPV4Mode  = "ipv4"
+
+	NetworkIPV6Mode  = "ipv6"
+
+	NetworkDualStackMode  = "dual-stack"
+
+	KeepAlivedVersion  = "v2.0.11"
+	KeepAlivedConfigConfigMap = "keepalived"
 )
 
 var (

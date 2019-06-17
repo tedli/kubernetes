@@ -316,6 +316,8 @@ func autoConvert_v1alpha3_ClusterConfiguration_To_kubeadm_ClusterConfiguration(i
 	// WARNING: in.AuditPolicyConfiguration requires manual conversion: does not exist in peer-type
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	out.ClusterName = in.ClusterName
+	out.ApiServerUrl = in.ApiServerUrl
+	out.ApiServerCredential = in.ApiServerCredential
 	return nil
 }
 
@@ -339,6 +341,8 @@ func autoConvert_kubeadm_ClusterConfiguration_To_v1alpha3_ClusterConfiguration(i
 	// WARNING: in.UseHyperKubeImage requires manual conversion: does not exist in peer-type
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	out.ClusterName = in.ClusterName
+	out.ApiServerUrl = in.ApiServerUrl
+	out.ApiServerCredential = in.ApiServerCredential
 	return nil
 }
 
@@ -465,6 +469,7 @@ func autoConvert_kubeadm_InitConfiguration_To_v1alpha3_InitConfiguration(in *kub
 		return err
 	}
 	// WARNING: in.LocalAPIEndpoint requires manual conversion: does not exist in peer-type
+	// WARNING: in.CertificateKey requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -520,6 +525,8 @@ func autoConvert_v1alpha3_Networking_To_kubeadm_Networking(in *Networking, out *
 	out.ServiceSubnet = in.ServiceSubnet
 	out.PodSubnet = in.PodSubnet
 	out.DNSDomain = in.DNSDomain
+	out.Plugin = in.Plugin
+	out.Mode = in.Mode
 	return nil
 }
 
@@ -532,6 +539,8 @@ func autoConvert_kubeadm_Networking_To_v1alpha3_Networking(in *kubeadm.Networkin
 	out.ServiceSubnet = in.ServiceSubnet
 	out.PodSubnet = in.PodSubnet
 	out.DNSDomain = in.DNSDomain
+	out.Plugin = in.Plugin
+	out.Mode = in.Mode
 	return nil
 }
 

@@ -135,10 +135,19 @@ func CreateStaticPodFiles(manifestDir string, cfg *kubeadmapi.ClusterConfigurati
 
 // getAPIServerCommand builds the right API server command from the given config object and version
 func getAPIServerCommand(cfg *kubeadmapi.ClusterConfiguration, localAPIEndpoint *kubeadmapi.APIEndpoint) []string {
+	var insecureBindAddress string
+	if cfg.Networking.Mode == kubeadmconstants.NetworkIPV6Mode || cfg.Networking.Mode == kubeadmconstants.NetworkDualStackMode {
+		//insecureBindAddress = "::1"
+		//TODO: FIXME when ipv6 only
+		insecureBindAddress = "127.0.0.1"
+	} else {
+		insecureBindAddress = "127.0.0.1"
+	}
 	defaultArguments := map[string]string{
 		"advertise-address":               localAPIEndpoint.AdvertiseAddress,
-		"insecure-port":                   "0",
-		"enable-admission-plugins":        "NodeRestriction",
+		"insecure-port":                   "8080",
+		"insecure-bind-address":           insecureBindAddress,
+		"enable-admission-plugins":        "NodeRestriction,PodSecurityPolicy",
 		"service-cluster-ip-range":        cfg.Networking.ServiceSubnet,
 		"service-account-key-file":        filepath.Join(cfg.CertificatesDir, kubeadmconstants.ServiceAccountPublicKeyName),
 		"client-ca-file":                  filepath.Join(cfg.CertificatesDir, kubeadmconstants.CACertName),
@@ -146,6 +155,7 @@ func getAPIServerCommand(cfg *kubeadmapi.ClusterConfiguration, localAPIEndpoint 
 		"tls-private-key-file":            filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKeyName),
 		"kubelet-client-certificate":      filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKubeletClientCertName),
 		"kubelet-client-key":              filepath.Join(cfg.CertificatesDir, kubeadmconstants.APIServerKubeletClientKeyName),
+		"token-auth-file":                 filepath.Join(cfg.CertificatesDir, "tokens.csv"),
 		"enable-bootstrap-token-auth":     "true",
 		"secure-port":                     fmt.Sprintf("%d", localAPIEndpoint.BindPort),
 		"allow-privileged":                "true",
@@ -309,6 +319,7 @@ func getSchedulerCommand(cfg *kubeadmapi.ClusterConfiguration) []string {
 	defaultArguments := map[string]string{
 		"bind-address": "127.0.0.1",
 		"leader-elect": "true",
+		"policy-configmap": "kube-scheduler",
 		"kubeconfig":   filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.SchedulerKubeConfigFileName),
 	}
 
