@@ -42,8 +42,20 @@ func (s *MemoryGroup) Apply(d *cgroupData) (err error) {
 			// is created by libcontainer, otherwise we might get
 			// error when people use `cgroupsPath` to join an existed
 			// cgroup whose kernel memory is not initialized.
-			if err := EnableKernelMemoryAccounting(path); err != nil {
-				return err
+			if d.config.KernelMemory != 0 {
+				// Only enable kernel memory accouting when this cgroup
+				// is created by libcontainer, otherwise we might get
+				// error when people use `cgroupsPath` to join an existed
+				// cgroup whose kernel memory is not initialized.
+				// http://jira.tenxcloud.com/browse/LOT-1896
+				// http://jira.tenxcloud.com/browse/MAS-159
+				// https://github.com/kubernetes/kubernetes/issues/61937
+				// https://github.com/opencontainers/runc/issues/1725
+				// It seems that the kernel bug which causes this error is finally fixed now,
+				// and will be released in kernel-3.10.0-1075.el7, which is due in RHEL 7.8
+				if err := EnableKernelMemoryAccounting(path); err != nil {
+					return err
+				}
 			}
 		}
 	}
