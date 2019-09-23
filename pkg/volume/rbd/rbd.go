@@ -72,6 +72,7 @@ const (
 	rbdDefaultAdminSecretNamespace = "default"
 	rbdDefaultPool                 = "rbd"
 	rbdDefaultUserId               = rbdDefaultAdminId
+	fsTypeLabelOnPVC               = "system/fsType"
 )
 
 func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
@@ -652,6 +653,11 @@ func (r *rbdVolumeProvisioner) Provision(selectedNode *v1.Node, allowedTopologie
 		default:
 			return nil, fmt.Errorf("invalid option %q for volume plugin %s", k, r.plugin.GetPluginName())
 		}
+	}
+
+	// if fstype in pvc not equal fstype in storageClass, using pvcs's fstype instead
+	if r.options.PVC.Labels[fsTypeLabelOnPVC] != "" && r.options.PVC.Labels[fsTypeLabelOnPVC] != fstype {
+		fstype = r.options.PVC.Labels[fsTypeLabelOnPVC]
 	}
 	// sanity check
 	if imageFormat != rbdImageFormat1 && imageFormat != rbdImageFormat2 {
