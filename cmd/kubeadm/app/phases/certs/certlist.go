@@ -219,6 +219,7 @@ func GetDefaultCertList() Certificates {
 		&KubeadmCertEtcdHealthcheck,
 		&KubeadmCertEtcdAPIClient,
 		&KubeadmCertEtcdClient,
+		&KubeadmCertEtcdMetricClient,
 	}
 }
 
@@ -367,6 +368,19 @@ var (
 		CAName:   "etcd-ca",
 		config: certutil.Config{
 			CommonName:   kubeadmconstants.EtcdClientCertCommonName,
+			Organization: []string{kubeadmconstants.SystemPrivilegedGroup},
+			Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		},
+	}
+
+	// KubeadmCertEtcdMetricClient is the definition of the cert used by prometheus plugins to access etcd metic.
+	KubeadmCertEtcdMetricClient = KubeadmCert{
+		Name:     "etcd-metric-client",
+		LongName: "prometheus client uses to access etcd",
+		BaseName: kubeadmconstants.EtcdMetricClientCertAndKeyBaseName,
+		CAName:   "etcd-ca",
+		config: certutil.Config{
+			CommonName:   kubeadmconstants.EtcdMetricClientCertCommonName,
 			Organization: []string{kubeadmconstants.SystemPrivilegedGroup},
 			Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		},

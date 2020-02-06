@@ -123,6 +123,15 @@ const (
 	// EtcdClientCertCommonName defines etcd client certificate common name (CN)
 	EtcdClientCertCommonName = "etcd-client"
 
+	// EtcdMetricClientCertAndKeyBaseName defines etcd metric client certificate and key base name
+	EtcdMetricClientCertAndKeyBaseName = "etcd/metric-client"
+	// EtcdMetricClientCertName defines etcd metric client certificate name
+	EtcdMetricClientCertName = "etcd/metric-client.crt"
+	// EtcdMetricClientKeyName defines etcd metric client key name
+	EtcdMetricClientKeyName = "etcd/metric-client.key"
+	// EtcdMetricClientCertCommonName defines etcd metric client certificate common name (CN)
+	EtcdMetricClientCertCommonName = "etcd-metric-client"
+
 	// ServiceAccountKeyBaseName defines SA key base name
 	ServiceAccountKeyBaseName = "sa"
 	// ServiceAccountPublicKeyName defines SA public key base name
@@ -375,6 +384,9 @@ const (
 
 	// KubeadmCertsSecret specifies in what Secret in the kube-system namespace the certificates should be stored
 	KubeadmCertsSecret = "kubeadm-certs"
+
+	// KubeadmEtcdMetricCertsSecret specifies in what Secret in the kube-system namespace the etcd certificates should be stored
+	KubeadmEtcdMetricCertsSecret = "prometheus-etcd-certs"
 
 	NetworkIPV4Mode  = "ipv4"
 
