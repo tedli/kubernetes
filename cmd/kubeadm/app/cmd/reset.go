@@ -174,7 +174,7 @@ func (r *Reset) Run(out io.Writer, client clientset.Interface, cfg *kubeadmapi.I
 			klog.Warningf("[reset] The kubelet service could not be stopped by kubeadm: [%v]\n", err)
 			klog.Warningln("[reset] Please ensure kubelet is stopped manually")
 		}
-		if  initSystem.ServiceIsActive("keepalived") {
+		if initSystem.ServiceIsActive("keepalived") {
 			if err := initSystem.ServiceStop("keepalived"); err != nil {
 				klog.Warningf("[reset] The keepalived service could not be stopped by kubeadm: [%v]\n", err)
 				klog.Warningln("[reset] Please ensure keepalived is stopped manually")
@@ -216,7 +216,7 @@ func (r *Reset) Run(out io.Writer, client clientset.Interface, cfg *kubeadmapi.I
 		klog.Errorf("[reset] Failed to remove containers: %v", err)
 	}
 
-	dirsToClean = append(dirsToClean, []string{kubeadmconstants.KubeletRunDirectory, "/etc/cni/net.d", "/var/lib/dockershim", "/var/run/kubernetes"}...)
+	dirsToClean = append(dirsToClean, []string{kubeadmconstants.KubeletRunDirectory, "/etc/cni/net.d", "/var/lib/dockershim", "/var/run/kubernetes", "/var/lib/calico"}...)
 
 	// Then clean contents from the stateful kubelet, etcd and cni directories
 	fmt.Printf("[reset] Deleting contents of stateful directories: %v\n", dirsToClean)
