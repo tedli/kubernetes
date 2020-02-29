@@ -180,6 +180,12 @@ func (r *Reset) Run(out io.Writer, client clientset.Interface, cfg *kubeadmapi.I
 				klog.Warningln("[reset] Please ensure keepalived is stopped manually")
 			}
 		}
+		if  initSystem.ServiceIsActive("keepalived") {
+			if err := initSystem.ServiceStop("keepalived"); err != nil {
+				klog.Warningf("[reset] The keepalived service could not be stopped by kubeadm: [%v]\n", err)
+				klog.Warningln("[reset] Please ensure keepalived is stopped manually")
+			}
+		}
 	}
 
 	// Try to unmount mounted directories under kubeadmconstants.KubeletRunDirectory in order to be able to remove the kubeadmconstants.KubeletRunDirectory directory later

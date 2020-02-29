@@ -486,9 +486,6 @@ spec:
           requests:
             cpu: 100m
             memory: 300Mi
-          limits:
-            cpu: 200m
-            memory: 400Mi
         env:
         - name: OVN_DAEMONSET_VERSION
           value: "3"

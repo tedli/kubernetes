@@ -105,6 +105,15 @@ func (sysd SystemdInitSystem) ServiceEnable(service string) bool {
 	return true
 }
 
+func (sysd SystemdInitSystem) ServiceEnable(service string) bool {
+	args := []string{"enable", service}
+	_, err := exec.Command("systemctl", args...).Output()
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // ServiceIsActive will check is the service is "active". In the case of
 // crash looping services (kubelet in our case) status will return as
 // "activating", so we will consider this active as well.

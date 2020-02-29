@@ -81,13 +81,13 @@ echo "}"
 PullImage=$(cat <<EOF
   PullImage() {
   echo "Pulling Necessary Images from \${1}"
-  docker pull \${1}/\${2}/hyperkube:${K8S_VERSION}
+  docker pull \${1}/\${2}/hyperkube-arm64:${K8S_VERSION}
   docker pull \${1}/\${2}/kubectl-amd64:${K8S_VERSION}
-  docker pull \${1}/\${2}/ctl-amd64:${CALICO_VERSION}
-  docker pull \${1}/\${2}/node-amd64:${CALICO_VERSION}
-  docker pull \${1}/\${2}/cni-amd64:${CALICO_VERSION}
+  docker pull \${1}/\${2}/ctl-arm64:${CALICO_VERSION}
+  docker pull \${1}/\${2}/node-arm64:${CALICO_VERSION}
+  docker pull \${1}/\${2}/cni-arm64:${CALICO_VERSION}
   if [ \${3} == "master" ]; then
-      docker pull  \${1}/\${2}/etcd:${ETCD_VERSION}
+      docker pull  \${1}/\${2}/etcd-arm64:${ETCD_VERSION}
   fi
   }
 EOF
@@ -303,15 +303,15 @@ fi
 rm -rf $(which kubeadm)
 mv /tmp/kubeadm /usr/bin/  >/dev/null
 
-docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/kubectl-amd64:${K8S_VERSION} /usr/bin/kubectl /tmp
+docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/kubectl-arm64:${K8S_VERSION} /usr/bin/kubectl /tmp
 rm -rf $(which kubectl)
 mv /tmp/kubectl /usr/bin/  >/dev/null
 
-docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/etcd:${ETCD_VERSION}  /usr/local/bin/etcdctl /tmp
+docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/etcd-arm64:${ETCD_VERSION}  /usr/local/bin/etcdctl /tmp
 rm -rf $(which etcdctl)
 mv /tmp/etcdctl /usr/bin/  >/dev/null
 
-docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/ctl-amd64:${CALICO_VERSION} /calicoctl /tmp
+docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/ctl-arm64:${CALICO_VERSION} /calicoctl /tmp
 rm -rf $(which calicoctl)
 mv /tmp/calicoctl /usr/bin/  >/dev/null
 $(CalicoConfig)
@@ -388,15 +388,15 @@ fi
 rm -rf $(which kubeadm)
 mv /tmp/kubeadm /usr/bin/  >/dev/null
 
-docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/kubectl-amd64:${K8S_VERSION} /usr/bin/kubectl /tmp
+docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/kubectl-arm64:${K8S_VERSION} /usr/bin/kubectl /tmp
 rm -rf $(which kubectl)
 mv /tmp/kubectl /usr/bin/  >/dev/null
 
-docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/etcd:${ETCD_VERSION}  /usr/local/bin/etcdctl /tmp
+docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/etcd-arm64:${ETCD_VERSION}  /usr/local/bin/etcdctl /tmp
 rm -rf $(which etcdctl)
 mv /tmp/etcdctl /usr/bin/  >/dev/null
 
-docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/ctl-amd64:${CALICO_VERSION} /calicoctl /tmp
+docker run --rm -v /tmp:/tmp --entrypoint cp  ${REGISTRY_SERVER}/${REGISTRY_USER}/ctl-arm64:${CALICO_VERSION} /calicoctl /tmp
 rm -rf $(which calicoctl)
 mv /tmp/calicoctl /usr/bin/  >/dev/null
 $(CalicoConfig)
