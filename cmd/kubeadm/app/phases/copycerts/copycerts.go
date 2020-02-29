@@ -114,7 +114,6 @@ func UploadCerts(client clientset.Interface, cfg *kubeadmapi.InitConfiguration, 
 			Namespace:       metav1.NamespaceSystem,
 			//OwnerReferences: ref,
 			Annotations:     map[string]string{ certificateKey: key },
-			Annotations:     map[string]string{ certificateKey: key },
 		},
 		Data: secretData,
 	})
