@@ -417,15 +417,3 @@ func GetUnsupportClientURL(localEndpoint *kubeadmapi.APIEndpoint) string {
 	}
 	return "https://" + net.JoinHostPort(net.IPv6zero.String(), strconv.Itoa(constants.EtcdListenClientPort))
 }
-
-func GetUnsupportClientURL(localEndpoint *kubeadmapi.APIEndpoint) string {
-	var ip = net.ParseIP(localEndpoint.AdvertiseAddress)
-	if ip == nil {
-		klog.Errorf("invalid value `%s` given for api.advertiseAddress", localEndpoint.AdvertiseAddress)
-		return ""
-	}
-	if ip.To4() != nil {
-		return "https://" + net.JoinHostPort(net.IPv4zero.String(), strconv.Itoa(constants.EtcdListenClientPort))
-	}
-	return "https://" + net.JoinHostPort(net.IPv6zero.String(), strconv.Itoa(constants.EtcdListenClientPort))
-}

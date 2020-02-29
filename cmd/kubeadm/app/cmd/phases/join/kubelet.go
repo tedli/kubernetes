@@ -96,15 +96,6 @@ func runKubeletInsatll(c workflow.RunData) error {
 	return kubeletphase.TryInstallKubelet(&initCfg.ClusterConfiguration)
 }
 
-// runKubeletInstall executes kubelet install logic.
-func runKubeletInsatll(c workflow.RunData) error {
-	_, initCfg, _, err := getKubeletStartJoinData(c)
-	if err != nil {
-		return err
-	}
-	return kubeletphase.TryInstallKubelet(&initCfg.ClusterConfiguration)
-}
-
 func getKubeletStartJoinData(c workflow.RunData) (*kubeadmapi.JoinConfiguration, *kubeadmapi.InitConfiguration, *clientcmdapi.Config, error) {
 	data, ok := c.(JoinData)
 	if !ok {
