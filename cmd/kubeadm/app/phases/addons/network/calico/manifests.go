@@ -115,7 +115,7 @@ spec:
     spec:
       nodeSelector:
         beta.kubernetes.io/os: linux
-        beta.kubernetes.io/arch: amd64
+        beta.kubernetes.io/arch: {{ .Arch }}
       hostNetwork: true
       tolerations:
         - effect: NoSchedule
@@ -126,16 +126,13 @@ spec:
       terminationGracePeriodSeconds: 0
       initContainers:
         - name: install-cni
-          image: {{ .ImageRepository }}/cni:{{ .Version }}
+          image: {{ .ImageRepository }}/cni-{{ .Arch }}:{{ .Version }}
           imagePullPolicy: IfNotPresent
           command: ["/install-cni.sh"]
           resources:
             requests:
-              cpu: 10m
-              memory: 50Mi
-            limits:
-              cpu: 10m
-              memory: 50Mi
+              cpu: 100m
+              memory: 128Mi
           env:
             - name: ETCD_ENDPOINTS
               valueFrom:
@@ -177,7 +174,7 @@ spec:
               name: cni-net-dir
       containers:
         - name: calico-node
-          image: {{ .ImageRepository }}/node:{{ .Version }}
+          image: {{ .ImageRepository }}/node-{{ .Arch }}:{{ .Version }}
           env:
             - name: ETCD_ENDPOINTS
               valueFrom:
@@ -252,11 +249,8 @@ spec:
             privileged: true
           resources:
             requests:
-              cpu: 100m
-              memory: 150Mi
-            limits:
-              cpu: 100m
-              memory: 150Mi
+              cpu: 200m
+              memory: 256Mi
           livenessProbe:
             httpGet:
               path: /liveness
@@ -358,7 +352,7 @@ spec:
       hostNetwork: true
       nodeSelector:
         beta.kubernetes.io/os: linux
-        beta.kubernetes.io/arch: amd64
+        beta.kubernetes.io/arch: {{ .Arch }}
       tolerations:
         - effect: NoSchedule
           operator: Exists
@@ -367,15 +361,12 @@ spec:
       serviceAccountName: kube-controllers
       containers:
       - name: kube-controller
-        image: {{ .ImageRepository }}/kube-controllers:{{ .Version }}-fixed
+        image: {{ .ImageRepository }}/kube-controllers-{{ .Arch }}:{{ .Version }}-fixed
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 100m
-            memory: 100Mi
-          limits:
-            cpu: 100m
-            memory: 100Mi
+            cpu: 200m
+            memory: 512Mi
         env:
           - name: ETCD_ENDPOINTS
             valueFrom:
@@ -479,7 +470,7 @@ spec:
           value: /etc/kubernetes/pki/etcd/client.crt
         - name: ETCD_KEY_FILE
           value: /etc/kubernetes/pki/etcd/client.key
-        image: {{ .ImageRepository }}/ctl:{{ .Version }}
+        image: {{ .ImageRepository }}/ctl-{{ .Arch }}:{{ .Version }}
         imagePullPolicy: IfNotPresent
         name: configure-calico
         volumeMounts:

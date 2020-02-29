@@ -2,6 +2,7 @@ package calico
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
 	apps "k8s.io/api/apps/v1"
@@ -53,9 +54,10 @@ func CreateCalicoAddon(cfg *kubeadmapi.InitConfiguration, client clientset.Inter
 	if err != nil {
 		return fmt.Errorf("error when parsing calico cni configmap template: %v", err)
 	}
-	cniDaemonSetBytes, err := kubeadmutil.ParseTemplate(Node, struct{ ImageRepository, Version string }{
+	cniDaemonSetBytes, err := kubeadmutil.ParseTemplate(Node, struct{ ImageRepository, Arch, Version string }{
 		ImageRepository: cfg.GetControlPlaneImageRepository(),
-		Version:         Version,
+		Arch           : runtime.GOARCH,
+		Version        : Version,
 	})
 	if err != nil {
 		return fmt.Errorf("error when parsing calico cni daemonset template: %v", err)
@@ -64,9 +66,10 @@ func CreateCalicoAddon(cfg *kubeadmapi.InitConfiguration, client clientset.Inter
 		return err
 	}
 	//PHASE 2: create calico kube controllers containers
-	policyControllerDeploymentBytes, err := kubeadmutil.ParseTemplate(KubeController, struct{ ImageRepository, Version string }{
+	policyControllerDeploymentBytes, err := kubeadmutil.ParseTemplate(KubeController, struct{ ImageRepository, Arch, Version string }{
 		ImageRepository: cfg.GetControlPlaneImageRepository(),
-		Version:         Version,
+		Arch           : runtime.GOARCH,
+		Version        : Version,
 	})
 	if err != nil {
 		return fmt.Errorf("error when parsing kube controllers deployment template: %v", err)
@@ -222,8 +225,9 @@ func createCalicoIPPool(serviceSubnet, podSubnet, name, imageRepository string, 
 		return fmt.Errorf("error when parsing calicoctl configmap template: %v", err)
 	}
 
-	ctlJobBytes, err := kubeadmutil.ParseTemplate(CtlJob, struct{ ImageRepository, Version, Name string }{
+	ctlJobBytes, err := kubeadmutil.ParseTemplate(CtlJob, struct{ ImageRepository, Arch, Version, Name string }{
 		ImageRepository: imageRepository,
+		Arch           : runtime.GOARCH,
 		Version:         Version,
 		Name:            name,
 	})

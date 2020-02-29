@@ -742,6 +742,7 @@ func autoConvert_v1beta1_JoinControlPlane_To_kubeadm_JoinControlPlane(in *JoinCo
 	if err := Convert_v1beta1_APIEndpoint_To_kubeadm_APIEndpoint(&in.LocalAPIEndpoint, &out.LocalAPIEndpoint, s); err != nil {
 		return err
 	}
+	out.CertificateKey = in.CertificateKey
 	return nil
 }
 
@@ -754,6 +755,7 @@ func autoConvert_kubeadm_JoinControlPlane_To_v1beta1_JoinControlPlane(in *kubead
 	if err := Convert_kubeadm_APIEndpoint_To_v1beta1_APIEndpoint(&in.LocalAPIEndpoint, &out.LocalAPIEndpoint, s); err != nil {
 		return err
 	}
+	out.CertificateKey = in.CertificateKey
 	return nil
 }
 

@@ -1,6 +1,6 @@
-FROM index.tenxcloud.com/google_containers/alpine-with-bash:3.7
+FROM 192.168.1.52/system_containers/alpine:3.10-bash
 
-MAINTAINER  "Joshua Andrew"   weiwei@tenxcloud.com
+LABEL maintainer=weiwei@tenxcloud.com
 
 ADD ./kubeadm /kubeadm
 

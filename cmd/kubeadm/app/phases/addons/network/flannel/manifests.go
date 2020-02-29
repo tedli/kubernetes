@@ -89,7 +89,7 @@ spec:
       serviceAccountName: flannel
       initContainers:
       - name: install-cni
-        image: {{ .ImageRepository }}/flannel:{{ .Version }}
+        image: {{ .ImageRepository }}/flannel-{{ .Arch }}:{{ .Version }}
         command:
         - cp
         args:
@@ -103,7 +103,7 @@ spec:
           mountPath: /etc/kube-flannel/
       containers:
       - name: flannel
-        image: {{ .ImageRepository }}/flannel:{{ .Version }}
+        image: {{ .ImageRepository }}/flannel-{{ .Arch }}:{{ .Version }}
         command:
         - /opt/bin/flanneld
         args:
@@ -115,10 +115,7 @@ spec:
         resources:
           requests:
             cpu: "100m"
-            memory: "50Mi"
-          limits:
-            cpu: "100m"
-            memory: "50Mi"
+            memory: "256Mi"
         securityContext:
           privileged: true
         env:

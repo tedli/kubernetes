@@ -18,15 +18,21 @@ package images
 
 import (
 	"fmt"
-
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
+	"runtime"
 )
 
 // GetGenericImage generates and returns a platform agnostic image (backed by manifest list)
 func GetGenericImage(prefix, image, tag string) string {
-	return fmt.Sprintf("%s/%s:%s", prefix, image, tag)
+	archType := runtime.GOARCH
+	switch archType {
+	case "arm64", "aarch64", "arm":
+		return fmt.Sprintf("%s/%s-%s:%s", prefix, image, archType, tag)
+	default: // amd64  x86_64
+		return fmt.Sprintf("%s/%s:%s", prefix, image, tag)
+	}
 }
 
 // GetKubernetesImage generates and returns the image for the components managed in the Kubernetes main repository,

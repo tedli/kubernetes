@@ -125,11 +125,8 @@ spec:
           command: ["/install-cni.sh"]
           resources:
             requests:
-              cpu: 10m
-              memory: 50Mi
-            limits:
-              cpu: 10m
-              memory: 50Mi
+              cpu: 100m
+              memory: 256Mi
           env:
             - name: ETCD_ENDPOINTS
               valueFrom:

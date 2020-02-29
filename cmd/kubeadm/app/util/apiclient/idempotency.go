@@ -134,6 +134,33 @@ func CreateOrUpdateJob(client clientset.Interface, job *batch.Job) error {
 	return nil
 }
 
+// CreateOrUpdateService creates a Service if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
+func CreateOrUpdateService(client clientset.Interface, svc *v1.Service) error {
+	if _, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Create(svc); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create deployment: %v", err)
+		}
+		if _, err := client.CoreV1().Services(svc.ObjectMeta.Namespace).Create(svc); err != nil {
+			return fmt.Errorf("unable to update deployment: %v", err)
+		}
+	}
+	return nil
+}
+
+// CreateOrUpdateJob creates a Job if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
+func CreateOrUpdateJob(client clientset.Interface, job *batch.Job) error {
+	if _, err := client.BatchV1().Jobs(job.ObjectMeta.Namespace).Create(job); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("unable to create a new calicoctl Job: %v", err)
+		}
+
+		if _, err := client.BatchV1().Jobs(job.ObjectMeta.Namespace).Update(job); err != nil {
+			return fmt.Errorf("unable to update the calicoctl Job: %v", err)
+		}
+	}
+	return nil
+}
+
 // CreateOrUpdateDaemonSet creates a DaemonSet if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
 func CreateOrUpdateDaemonSet(client clientset.Interface, ds *apps.DaemonSet) error {
 	if _, err := client.AppsV1().DaemonSets(ds.ObjectMeta.Namespace).Create(ds); err != nil {

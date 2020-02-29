@@ -19,6 +19,7 @@ package kubelet
 import (
 	"fmt"
 	"io/ioutil"
+	"k8s.io/kubernetes/pkg/features"
 	"os"
 	"path/filepath"
 
@@ -59,6 +60,11 @@ func CreateConfigMap(cfg *kubeletconfig.KubeletConfiguration, k8sVersionStr stri
 
 	configMapName := kubeadmconstants.GetKubeletConfigMapName(k8sVersion)
 	fmt.Printf("[kubelet] Creating a ConfigMap %q in namespace %s with the configuration for the kubelets in the cluster\n", configMapName, metav1.NamespaceSystem)
+    //http://jira.tenxcloud.com/browse/KAN-3084
+	if len(cfg.FeatureGates) == 0 {
+		cfg.FeatureGates = make(map[string]bool)
+	}
+	cfg.FeatureGates[string(features.KubeletPodResources)] = true
 
 	kubeletBytes, err := getConfigBytes(cfg)
 	if err != nil {
