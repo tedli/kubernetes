@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
@@ -295,7 +296,7 @@ const (
 	// KubeProxy defines variable used internally when referring to kube-proxy component
 	KubeProxy = "kube-proxy"
 	// HyperKube defines variable used internally when referring to the hyperkube image
-	HyperKube = "hyperkube"
+	HyperKube = "hyperkube-" + runtime.GOARCH
 
 	// SelfHostingPrefix describes the prefix workloads that are self-hosted by kubeadm has
 	SelfHostingPrefix = "self-hosted-"

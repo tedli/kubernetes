@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/initsystem"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	ServiceName            = "kubelet"
 	ConfigName             = "10-kubeadm.conf"
 	kubeletServiceConfPath = kubeletServicePath + "/" + ServiceName + ".service.d"
+	Arch                   = runtime.GOARCH
 )
 
 func TryInstallKubelet(cfg *kubeadmapi.ClusterConfiguration) error {
@@ -80,7 +82,7 @@ WantedBy=multi-user.target
 	buf.WriteString("Environment=\"KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml  \"\n")
 	buf.WriteString("EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env \n")
 	buf.WriteString("ExecStartPre=/usr/bin/docker run --rm -v /opt/tmp/bin/:/opt/tmp/bin/   ")
-	buf.WriteString(fmt.Sprintf("%s/hyperkube:%s", imageRepository, kubernetesVersion))
+	buf.WriteString(fmt.Sprintf("%s/hyperkube-%s:%s", imageRepository, Arch, kubernetesVersion))
 	buf.WriteString(" /bin/bash -c \"mkdir -p /opt/tmp/bin && cp /opt/cni/bin/* /opt/tmp/bin/ && cp /usr/bin/nsenter /opt/tmp/bin/\" \n")
 	buf.WriteString("ExecStartPre=/bin/bash -c \"mkdir -p /opt/cni/bin && cp -r /opt/tmp/bin/ /opt/cni/ && cp /opt/tmp/bin/nsenter /usr/bin/ && rm -r /opt/tmp\"\n")
 	buf.WriteString("ExecStartPre=/bin/bash -c \"docker inspect kubelet >/dev/null 2>&1 && docker rm -f kubelet || true \" \n")
@@ -90,7 +92,7 @@ WantedBy=multi-user.target
 	buf.WriteString("-v /var/lib/kubelet/:/var/lib/kubelet:shared -v /etc/kubernetes:/etc/kubernetes:ro ")
 	buf.WriteString("-v /etc/cni:/etc/cni:rw -v /sys:/sys:ro -v /var/run:/var/run:rw -v /opt/cni/bin/:/opt/cni/bin/ ")
 	buf.WriteString("-v /srv/kubernetes:/srv/kubernetes:ro ")
-	buf.WriteString(fmt.Sprintf("%s/hyperkube:%s", imageRepository, kubernetesVersion))
+	buf.WriteString(fmt.Sprintf("%s/hyperkube-%s:%s", imageRepository, Arch, kubernetesVersion))
 	buf.WriteString(" nsenter --target=1 --mount --wd=./ -- ./hyperkube kubelet ")
 	buf.WriteString(" $KUBELET_KUBECONFIG_ARGS $KUBELET_PODINFRA_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS \" \n")
 	buf.WriteString("ExecStop=/usr/bin/docker stop kubelet \n")
