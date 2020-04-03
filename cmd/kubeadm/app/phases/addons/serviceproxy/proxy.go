@@ -2,6 +2,8 @@ package serviceproxy
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
 
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
@@ -12,6 +14,17 @@ import (
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
+)
+
+func archSuffix() string {
+	if strings.EqualFold(runtime.GOARCH, "amd64") {
+		return ""
+	}
+	return fmt.Sprintf("-%s", runtime.GOARCH)
+}
+
+var (
+	imageSuffix = archSuffix()
 )
 
 func EnsureServiceProxyAddon(cfg *kubeadmapi.ClusterConfiguration, client clientset.Interface) error {
@@ -26,9 +39,11 @@ func EnsureServiceProxyAddon(cfg *kubeadmapi.ClusterConfiguration, client client
 		return fmt.Errorf("error when parsing service-proxy kube-certs configmap template: %v", err)
 	}
 
-	tenxProxyDaemonSetBytes, err := kubeadmutil.ParseTemplate(TenxProxyDaemonSet, struct{ ImageRepository, Version string }{
+	tenxProxyDaemonSetBytes, err := kubeadmutil.ParseTemplate(TenxProxyDaemonSet, struct{ ImageRepository, Version, ExporterVersion, Suffix string }{
 		ImageRepository: cfg.GetControlPlaneImageRepository(),
 		Version:         TenxProxyVersion,
+		ExporterVersion: HAProxyExporterVersion,
+		Suffix:          imageSuffix,
 	})
 	if err != nil {
 		return fmt.Errorf("error when parsing service-proxy daemonset template: %v", err)

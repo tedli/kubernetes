@@ -1,9 +1,8 @@
 package serviceproxy
 
-
 const (
-
-	TenxProxyVersion         = "v3.2"
+	TenxProxyVersion         = "v4.1.0"
+	HAProxyExporterVersion   = "v0.10.0"
 	TenxProxyDomainConfigMap = `
 apiVersion: v1
 kind: ConfigMap
@@ -47,7 +46,7 @@ spec:
         - /run.sh
         - --plugins=tenx-proxy --watch=watchsrvs --emailReceiver=weiwei@tenxcloud.com
           --config=/etc/tenx/domain.json
-        image: {{ .ImageRepository }}/tenx-proxy:{{ .Version }}
+        image: {{ .ImageRepository }}/tenx-proxy{{ .Suffix }}:{{ .Version }}
         imagePullPolicy: IfNotPresent
         name: service-proxy
         volumeMounts:
@@ -63,7 +62,7 @@ spec:
         - sh
         - -c
         - sleep 10 && haproxy_exporter --haproxy.scrape-uri=unix:/run/haproxy/admin.sock
-        image: {{ .ImageRepository }}/haproxy-exporter:v0.8.0
+        image: {{ .ImageRepository }}/haproxy-exporter{{ .Suffix }}:{{ .ExporterVersion }}
         imagePullPolicy: IfNotPresent
         name: exporter
         ports:
@@ -135,5 +134,4 @@ subjects:
   name: service-proxy
   namespace: kube-system
 `
-
 )
