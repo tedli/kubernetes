@@ -50,7 +50,7 @@ EOF
 Clean=$(cat <<EOF
   Clean() {
     cp /kubeadm  /tmp/  1>/dev/null 2>&1
-    /tmp/kubeadm reset -f
+    /tmp/kubeadm reset ${KUBEADM_ARGS} -f
   }
 EOF
 )
@@ -295,7 +295,7 @@ Clean
 ${PullImage}
 PullImage ${REGISTRY_SERVER} ${REGISTRY_USER}  "master"
 
-/tmp/kubeadm init  --config /tmp/init.yaml
+/tmp/kubeadm init ${KUBEADM_ARGS} --config /tmp/init.yaml
 if [[ \$? -ne 0  ]];then
    echo "Kubernetes Enterprise Edition cluster deployed  failed!"
    exit 1
@@ -380,7 +380,7 @@ Clean
 
 ${PullImage}
 PullImage ${REGISTRY_SERVER} ${REGISTRY_USER}  "node"
-/tmp/kubeadm join ${controlPlaneEndpoint}  ${apiServerAdvertiseAddress}  ${apiServerBindPort}   --token ${K8S_TOKEN}  --discovery-token-ca-cert-hash ${CA_CERT_HASH}  --control-plane --certificate-key areyoukidingme
+/tmp/kubeadm join ${KUBEADM_ARGS} ${controlPlaneEndpoint}  ${apiServerAdvertiseAddress}  ${apiServerBindPort}   --token ${K8S_TOKEN}  --discovery-token-ca-cert-hash ${CA_CERT_HASH}  --control-plane --certificate-key areyoukidingme
 if [[ \$? -ne 0  ]];then
    echo "Kubernetes Enterprise Edition cluster deployed  failed!"
    exit 1
@@ -423,7 +423,7 @@ Clean
 
 ${PullImage}
 PullImage ${REGISTRY_SERVER} ${REGISTRY_USER}  "node"
-/tmp/kubeadm join ${controlPlaneEndpoint} --token ${K8S_TOKEN}  --discovery-token-ca-cert-hash ${CA_CERT_HASH}
+/tmp/kubeadm join ${KUBEADM_ARGS} ${controlPlaneEndpoint} --token ${K8S_TOKEN}  --discovery-token-ca-cert-hash ${CA_CERT_HASH}
 if [[ \$? -eq 0  ]];then
    echo "Kubernetes Enterprise Edition cluster deployed successfully"
 else
