@@ -82,7 +82,7 @@ PullImage=$(cat <<EOF
   PullImage() {
   echo "Pulling Necessary Images from \${1}"
   docker pull \${1}/\${2}/hyperkube-arm64:${K8S_VERSION}
-  docker pull \${1}/\${2}/kubectl-amd64:${K8S_VERSION}
+  docker pull \${1}/\${2}/kubectl-arm64:${K8S_VERSION}
   docker pull \${1}/\${2}/ctl-arm64:${CALICO_VERSION}
   docker pull \${1}/\${2}/node-arm64:${CALICO_VERSION}
   docker pull \${1}/\${2}/cni-arm64:${CALICO_VERSION}
