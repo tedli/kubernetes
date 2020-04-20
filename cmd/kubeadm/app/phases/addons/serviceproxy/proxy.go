@@ -2,9 +2,6 @@ package serviceproxy
 
 import (
 	"fmt"
-	"runtime"
-	"strings"
-
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -14,17 +11,7 @@ import (
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
-)
-
-func archSuffix() string {
-	if strings.EqualFold(runtime.GOARCH, "amd64") {
-		return ""
-	}
-	return fmt.Sprintf("-%s", runtime.GOARCH)
-}
-
-var (
-	imageSuffix = archSuffix()
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/arch"
 )
 
 func EnsureServiceProxyAddon(cfg *kubeadmapi.ClusterConfiguration, client clientset.Interface) error {
@@ -43,7 +30,7 @@ func EnsureServiceProxyAddon(cfg *kubeadmapi.ClusterConfiguration, client client
 		ImageRepository: cfg.GetControlPlaneImageRepository(),
 		Version:         TenxProxyVersion,
 		ExporterVersion: HAProxyExporterVersion,
-		Suffix:          imageSuffix,
+		Suffix:          arch.ImageSuffix,
 	})
 	if err != nil {
 		return fmt.Errorf("error when parsing service-proxy daemonset template: %v", err)
